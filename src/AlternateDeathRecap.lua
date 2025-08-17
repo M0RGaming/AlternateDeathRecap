@@ -14,12 +14,9 @@ end
 
 function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, _log, sourceUnitID, targetUnitID, abilityID, overflow)
 	
-	
 	if string.find(sourceName, "^", 1, true) ~= nil then sourceName = string.sub(sourceName, 1, (string.find(sourceName, "^", 1, true) - 1)) end
 	if string.find(string.lower(abilityName), "revive") ~= nil then return end
-	if string.find(string.lower(abilityName), "break free") ~= nil then
-		d(result)
-	end
+	if string.find(string.lower(abilityName), "break free") ~= nil and sourceType ~= COMBAT_UNIT_TYPE_PLAYER then return end
 	
 	--track skills that cost health.
 	--Doesn't track vamp drain.
@@ -28,6 +25,13 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 		if cost ~= 0 then 
 			result = ACTION_RESULT_DAMAGE
 			hitValue = cost
+		end
+		
+		--Only track one cast per skill.
+		if ADR.lastCastTimes[abilityName] == nil or (GetGameTimeMilliseconds() - ADR.lastCastTimes[abilityName]) > 500 then
+			ADR.lastCastTimes[abilityName] = GetGameTimeMilliseconds()
+		else
+			return
 		end
 	end
 	
@@ -296,6 +300,8 @@ function ADR.Initialize()
 	}
 	
 	ADR.savedVariables = ZO_SavedVars:NewAccountWide("ADRSavedVariables", 1, nil, ADR.defaults, GetWorldName())
+	ADR.lastCastTimes = {}
+	
 	
 	--[[attacks can include incoming heals or any of the special cases included in EVENT_COMBAT_EVENT
 	   Indexes from 1 to 25
@@ -304,11 +310,6 @@ function ADR.Initialize()
 	   TODO: A more efficient data structure should be possible with start/end indexes. table.remove(ADR.attackList, 1) shifts elements]]
 	ADR.attackList = {}
 	GetNumKillingAttacks = function() return #ADR.attackList end
-	
-	SLASH_COMMANDS["/togglerecap"] = function() 
-		--todo, play animation
-		ZO_DeathRecap:SetHidden(not ZO_DeathRecap:IsHidden())
-	end
 	
 	SLASH_COMMANDS["/setmaxattacks"] = function(x) 
 		if type(x) == "number" then ADR.savedVariables.maxAttacks = x end
@@ -345,6 +346,8 @@ function ADR.Initialize()
 	--				($parent) AttackerName				ZO_DeathRecapScrollContainerScrollChildAttacks1AttackTextAttackerName		Type:
 	--				($parent) AttackName				ZO_DeathRecapScrollContainerScrollChildAttacks1AttackTextAttackName			Type:]]
 	EVENT_MANAGER:RegisterForEvent(ADR.name, EVENT_PLAYER_DEAD, function() 
+		ADR.lastCastTimes = {}
+	
 		--Setup timeline
 		local killTime
 		for k, v in ipairs(ADR.attackList) do
@@ -402,10 +405,10 @@ function ADR.Initialize()
 					damageLabel:SetText("HEAL ABSORB")
 					damageText:SetText(rowData.attackDamage)
 					damageText:SetColor(0, 1, 1, 1)
-				elseif rowData.resultType == ACTION_RESULT_DODGED then
+				elseif rowData.resultType == ACTION_RESULT_DODGED or rowData.attackName == "Roll Dodge" then
 					damageLabel:SetText("DODGE")
 					damageText:SetText(rowData.attackDamage)
-					damageText:SetColor(0, 0, 1, 1)
+					damageText:SetColor(1, 0, 1, 1)
 				elseif rowData.resultType == ACTION_RESULT_ROOTED then
 					damageLabel:SetText("ROOT")
 					damageText:SetText("")
@@ -424,6 +427,9 @@ function ADR.Initialize()
 					damageText:SetText("")
 				elseif rowData.resultType == ACTION_RESULT_STUNNED then
 					damageLabel:SetText("STUNNED")
+					damageText:SetText("")
+				elseif rowData.attackName == "Break Free" then
+					damageLabel:SetText("BREAK FREE")
 					damageText:SetText("")
 				else
 					damageLabel:SetText("DMG")
@@ -447,6 +453,7 @@ function ADR.Initialize()
 	
 	--reset attack list on respawn.
 	EVENT_MANAGER:RegisterForEvent(ADR.name, EVENT_PLAYER_ALIVE, function() 
+		ADR.lastCastTimes = {}
 		ADR.attackList = {} 
 	end)
 	
