@@ -1,0 +1,464 @@
+ADR = { name = "AlternateDeathRecap" }
+
+--return true if the first argument should come first in the array.
+--oldest attacks come first
+local function SortAttacks(left, right)
+    if left.wasKillingBlow then
+        return false
+    elseif right.wasKillingBlow then
+        return true
+    else
+        return left.lastUpdateAgoMS < right.lastUpdateAgoMS
+    end
+end
+
+function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, _log, sourceUnitID, targetUnitID, abilityID, overflow)
+	
+	
+	if string.find(sourceName, "^", 1, true) ~= nil then sourceName = string.sub(sourceName, 1, (string.find(sourceName, "^", 1, true) - 1)) end
+	if string.find(string.lower(abilityName), "revive") ~= nil then return end
+	if string.find(string.lower(abilityName), "break free") ~= nil then
+		d(result)
+	end
+	
+	--track skills that cost health.
+	--Doesn't track vamp drain.
+	if sourceType == COMBAT_UNIT_TYPE_PLAYER then 
+		local cost = GetAbilityCost(abilityID, COMBAT_MECHANIC_FLAGS_HEALTH)
+		if cost ~= 0 then 
+			result = ACTION_RESULT_DAMAGE
+			hitValue = cost
+		end
+	end
+	
+	local attack_icon = GetAbilityIcon(abilityID)
+	
+	if result == ACTION_RESULT_DOT_TICK or
+		result == ACTION_RESULT_DOT_TICK_CRITICAL  or
+		result == ACTION_RESULT_CRITICAL_DAMAGE or
+		result == ACTION_RESULT_DAMAGE or
+		result == ACTION_RESULT_BLOCKED_DAMAGE or
+		result == ACTION_RESULT_DAMAGE_SHIELDED or
+		result == ACTION_RESULT_PRECISE_DAMAGE or
+		result == ACTION_RESULT_WRECKING_DAMAGE or 
+		result == ACTION_RESULT_FALL_DAMAGE then
+		
+			local attackInfo =
+			{
+				resultType = result,
+				attackName = abilityName,
+				attackDamage = hitValue,
+				attackOverflow = overflow,
+				attackIcon = attack_icon,
+				wasKillingBlow = false,
+				lastUpdateAgoMS = GetGameTimeMilliseconds(),
+				numAttackHits = 1,
+				attackerName = sourceName,
+			}
+			
+			if attackInfo.attackOverflow ~= 0 then
+				attackInfo.wasKillingBlow = true
+			end
+			
+			
+			table.insert(ADR.attackList, attackInfo)
+			table.sort(ADR.attackList, SortAttacks)
+			
+			if #ADR.attackList > ADR.savedVariables.maxAttacks then 
+				table.remove(ADR.attackList, 1)
+			end
+			
+	elseif hitValue ~= 0 and
+		(result == ACTION_RESULT_CRITICAL_HEAL or 
+		result == ACTION_RESULT_HEAL or
+		result == ACTION_RESULT_HOT_TICK or
+		result == ACTION_RESULT_HOT) then
+				
+			--incoming healing (No overflow)
+			
+			local attackInfo =
+			{
+				resultType = result,
+				attackName = abilityName,
+				attackDamage = hitValue,
+				attackOverflow = overflow,
+				attackIcon = attack_icon,
+				wasKillingBlow = false,
+				lastUpdateAgoMS = GetGameTimeMilliseconds(),
+				numAttackHits = 1,
+				attackerName = sourceName,
+			}
+			
+			table.insert(ADR.attackList, attackInfo)
+			table.sort(ADR.attackList, SortAttacks)
+			
+			if #ADR.attackList > ADR.savedVariables.maxAttacks then 
+				table.remove(ADR.attackList, 1)
+			end
+	elseif result == ACTION_RESULT_ABSORBED then
+		--absorbed damage (e.g projectiles from 1h/shield skill)
+		local attackInfo =
+		{
+			resultType = result,
+			attackName = abilityName,
+			attackDamage = hitValue,
+			attackOverflow = overflow,
+			attackIcon = attack_icon,
+			wasKillingBlow = false,
+			lastUpdateAgoMS = GetGameTimeMilliseconds(),
+			numAttackHits = 1, 
+			attackerName = sourceName,
+		}
+		
+		table.insert(ADR.attackList, attackInfo)
+		table.sort(ADR.attackList, SortAttacks)
+		
+		if #ADR.attackList > ADR.savedVariables.maxAttacks then 
+			table.remove(ADR.attackList, 1)
+		end
+	elseif result == ACTION_RESULT_HEAL_ABSORBED then
+		--absorbed healing (blue bars)
+		local attackInfo =
+		{
+			resultType = result,
+			attackName = abilityName,
+			attackDamage = hitValue,
+			attackOverflow = overflow,
+			attackIcon = attack_icon,
+			wasKillingBlow = false,
+			lastUpdateAgoMS = GetGameTimeMilliseconds(),
+			numAttackHits = 1, 
+			attackerName = sourceName,
+		}
+		
+		table.insert(ADR.attackList, attackInfo)
+		table.sort(ADR.attackList, SortAttacks)
+		
+		if #ADR.attackList > ADR.savedVariables.maxAttacks then 
+			table.remove(ADR.attackList, 1)
+		end
+	
+	elseif result == ACTION_RESULT_DODGED then
+		local attackInfo =
+		{
+			resultType = result,
+			attackName = abilityName,
+			attackDamage = hitValue,
+			attackOverflow = overflow,
+			attackIcon = attack_icon,
+			wasKillingBlow = false,
+			lastUpdateAgoMS = GetGameTimeMilliseconds(),
+			numAttackHits = 1, 
+			attackerName = sourceName,
+		}
+		
+		table.insert(ADR.attackList, attackInfo)
+		table.sort(ADR.attackList, SortAttacks)
+		
+		if #ADR.attackList > ADR.savedVariables.maxAttacks then 
+			table.remove(ADR.attackList, 1)
+		end
+	
+	elseif result == ACTION_RESULT_INTERRUPT then
+		local attackInfo =
+		{
+			resultType = result,
+			attackName = abilityName,
+			attackDamage = hitValue,
+			attackOverflow = overflow,
+			attackIcon = attack_icon,
+			wasKillingBlow = false,
+			lastUpdateAgoMS = GetGameTimeMilliseconds(),
+			numAttackHits = 1, 
+			attackerName = sourceName,
+		}
+		
+		table.insert(ADR.attackList, attackInfo)
+		table.sort(ADR.attackList, SortAttacks)
+		
+		if #ADR.attackList > ADR.savedVariables.maxAttacks then 
+			table.remove(ADR.attackList, 1)
+		end
+	
+	elseif result == ACTION_RESULT_REFLECTED then
+		local attackInfo =
+		{
+			resultType = result,
+			attackName = abilityName,
+			attackDamage = hitValue,
+			attackOverflow = overflow,
+			attackIcon = attack_icon,
+			wasKillingBlow = false,
+			lastUpdateAgoMS = GetGameTimeMilliseconds(),
+			numAttackHits = 1, 
+			attackerName = sourceName,
+		}
+		
+		table.insert(ADR.attackList, attackInfo)
+		table.sort(ADR.attackList, SortAttacks)
+		
+		if #ADR.attackList > ADR.savedVariables.maxAttacks then 
+			table.remove(ADR.attackList, 1)
+		end
+	
+	elseif result == ACTION_RESULT_ROOTED then
+		local attackInfo =
+		{
+			resultType = result,
+			attackName = abilityName,
+			attackDamage = hitValue,
+			attackOverflow = overflow,
+			attackIcon = attack_icon,
+			wasKillingBlow = false,
+			lastUpdateAgoMS = GetGameTimeMilliseconds(),
+			numAttackHits = 1, 
+			attackerName = sourceName,
+		}
+		
+		table.insert(ADR.attackList, attackInfo)
+		table.sort(ADR.attackList, SortAttacks)
+		
+		if #ADR.attackList > ADR.savedVariables.maxAttacks then 
+			table.remove(ADR.attackList, 1)
+		end
+	
+	elseif result == ACTION_RESULT_SILENCED then
+	
+		local attackInfo =
+		{
+			resultType = result,
+			attackName = abilityName,
+			attackDamage = hitValue,
+			attackOverflow = overflow,
+			attackIcon = attack_icon,
+			wasKillingBlow = false,
+			lastUpdateAgoMS = GetGameTimeMilliseconds(),
+			numAttackHits = 1, 
+			attackerName = sourceName,
+		}
+		
+		table.insert(ADR.attackList, attackInfo)
+		table.sort(ADR.attackList, SortAttacks)
+		
+		if #ADR.attackList > ADR.savedVariables.maxAttacks then 
+			table.remove(ADR.attackList, 1)
+		end
+	
+	elseif result == ACTION_RESULT_SNARED then
+		local attackInfo =
+		{
+			resultType = result,
+			attackName = abilityName,
+			attackDamage = hitValue,
+			attackOverflow = overflow,
+			attackIcon = attack_icon,
+			wasKillingBlow = false,
+			lastUpdateAgoMS = GetGameTimeMilliseconds(),
+			numAttackHits = 1, 
+			attackerName = sourceName,
+		}
+		
+		table.insert(ADR.attackList, attackInfo)
+		table.sort(ADR.attackList, SortAttacks)
+		
+		if #ADR.attackList > ADR.savedVariables.maxAttacks then 
+			table.remove(ADR.attackList, 1)
+		end
+	
+	elseif result == ACTION_RESULT_STUNNED then
+		local attackInfo =
+		{
+			resultType = result,
+			attackName = abilityName,
+			attackDamage = hitValue,
+			attackOverflow = overflow,
+			attackIcon = attack_icon,
+			wasKillingBlow = false,
+			lastUpdateAgoMS = GetGameTimeMilliseconds(),
+			numAttackHits = 1, 
+			attackerName = sourceName,
+		}
+		
+		table.insert(ADR.attackList, attackInfo)
+		table.sort(ADR.attackList, SortAttacks)
+		
+		if #ADR.attackList > ADR.savedVariables.maxAttacks then 
+			table.remove(ADR.attackList, 1)
+		end
+	end
+end
+
+function ADR.Initialize()
+	
+	ADR.defaults = {
+		maxAttacks = 25,
+		timeLength = 10,
+	}
+	
+	ADR.savedVariables = ZO_SavedVars:NewAccountWide("ADRSavedVariables", 1, nil, ADR.defaults, GetWorldName())
+	
+	--[[attacks can include incoming heals or any of the special cases included in EVENT_COMBAT_EVENT
+	   Indexes from 1 to 25
+	   Index 1: Oldest Attack
+	   Index 25: Newest Attack
+	   TODO: A more efficient data structure should be possible with start/end indexes. table.remove(ADR.attackList, 1) shifts elements]]
+	ADR.attackList = {}
+	GetNumKillingAttacks = function() return #ADR.attackList end
+	
+	SLASH_COMMANDS["/togglerecap"] = function() 
+		--todo, play animation
+		ZO_DeathRecap:SetHidden(not ZO_DeathRecap:IsHidden())
+	end
+	
+	SLASH_COMMANDS["/setmaxattacks"] = function(x) 
+		if type(x) == "number" then ADR.savedVariables.maxAttacks = x end
+	end
+	
+	SLASH_COMMANDS["/setmaxtime"] = function(x) 
+		if type(x) == "number" then ADR.savedVariables.timeLength = x end
+	end
+	
+	SLASH_COMMANDS["/adr_resetdefaults"] = function()
+		ADR.savedVariables.maxAttacks = ADR.defaults.maxAttacks
+		ADR.savedVariables.timeLength = ADR.defaults.timeLength
+	end
+	
+  --[[ZO_DeathRecapScrollContainerScrollChildAttacks																				Type: Control
+	--  ZO_DeathRecapScrollContainerScrollChildAttacks1																				Type:
+	--		($parent)Icon								ZO_DeathRecapScrollContainerScrollChildAttacks1Icon							Type:
+	--			($parent)Border							ZO_DeathRecapScrollContainerScrollChildAttacks1IconBorder					Type:
+	--				($parent) KeyboardFrame				ZO_DeathRecapScrollContainerScrollChildAttacks1IconBorderKeyboardFrame		Type:
+	--				($parent) GamepadFrame				ZO_DeathRecapScrollContainerScrollChildAttacks1IconBorderGamepadFrame		Type:
+	--			($parent)BossBorder						ZO_DeathRecapScrollContainerScrollChildAttacks1IconBossBorder				Type:
+	--				($parent) KeyboardFrame				ZO_DeathRecapScrollContainerScrollChildAttacks1IconBossBorderKeyboardFrame	Type:
+	--				($parent) GamepadFrame				ZO_DeathRecapScrollContainerScrollChildAttacks1IconBossBorderGamepadFrame	Type:
+	--		($parent)SkillStyle							ZO_DeathRecapScrollContainerScrollChildAttacks1SkillStyle					Type:
+	--			($parent)Icon							ZO_DeathRecapScrollContainerScrollChildAttacks1SkillStyleIcon				Type:
+	--		($parent)NumAttackHits						ZO_DeathRecapScrollContainerScrollChildAttacks1NumAttackHits				Type:
+	--			($parent)Count							ZO_DeathRecapScrollContainerScrollChildAttacks1NumAttackHitsCount			Type: Label
+	--			($parent)HitIcon						ZO_DeathRecapScrollContainerScrollChildAttacks1NumAttackHitsHitIcon			Type:
+	--			($parent)KillIcon						ZO_DeathRecapScrollContainerScrollChildAttacks1NumAttackHitsKillIcon		Type:
+	--		($parent)Text								ZO_DeathRecapScrollContainerScrollChildAttacks1Text							Type:
+	--			($grandparent)DamageLabel				ZO_DeathRecapScrollContainerScrollChildAttacks1DamageLabel					Type:
+	--			($grandparent)Damage					ZO_DeathRecapScrollContainerScrollChildAttacks1Damage						Type:
+	--			($grandparent)AttackText				ZO_DeathRecapScrollContainerScrollChildAttacks1AttackText					Type:
+	--				($parent) AttackerName				ZO_DeathRecapScrollContainerScrollChildAttacks1AttackTextAttackerName		Type:
+	--				($parent) AttackName				ZO_DeathRecapScrollContainerScrollChildAttacks1AttackTextAttackName			Type:]]
+	EVENT_MANAGER:RegisterForEvent(ADR.name, EVENT_PLAYER_DEAD, function() 
+		--Setup timeline
+		local killTime
+		for k, v in ipairs(ADR.attackList) do
+			if v ~= nil and v.wasKillingBlow then
+				killTime = v.lastUpdateAgoMS
+				break
+			end
+		end
+		for k, v in ipairs(ADR.attackList) do
+			if v ~= nil then
+				v.lastUpdateAgoMS = killTime - v.lastUpdateAgoMS
+			end
+		end
+		while ADR.attackList[1] ~= nil and ADR.attackList[1].lastUpdateAgoMS > (ADR.savedVariables.timeLength * 1000) do
+			table.remove(ADR.attackList, 1)
+		end
+		
+		--wait for the controls to be made before modifying them.
+		zo_callLater(function()
+			for i = 1, ADR.savedVariables.maxAttacks do
+				local rowData = ADR.attackList[i]
+				if rowData == nil then break end
+				
+				local currentRow = ZO_DeathRecapScrollContainerScrollChildAttacks:GetNamedChild(tostring(i))
+				
+				--Change icon texture
+				currentRow:GetNamedChild("Icon"):SetTexture(rowData.attackIcon)
+				
+				--Display timeline using these controls.
+				local numAttackHits = currentRow:GetNamedChild("NumAttackHits")
+				local attackCount = numAttackHits:GetNamedChild("Count")
+				if rowData.wasKillingBlow == false then
+					numAttackHits:SetHidden(false)
+					attackCount:SetHidden(false)
+					attackCount:SetText("-"..tostring(zo_roundToNearest(rowData.lastUpdateAgoMS/1000, .01)).."s")
+					numAttackHits:GetNamedChild("HitIcon"):SetHidden(true)
+					numAttackHits:GetNamedChild("KillIcon"):SetHidden(true)
+				end
+				
+				--Set damage and label
+				local damageLabel = currentRow:GetNamedChild("DamageLabel")
+				local damageText = currentRow:GetNamedChild("Damage")
+				if rowData.resultType == ACTION_RESULT_CRITICAL_HEAL or 
+					rowData.resultType == ACTION_RESULT_HEAL or
+					rowData.resultType == ACTION_RESULT_HOT_TICK or
+					rowData.resultType == ACTION_RESULT_HOT then
+						damageLabel:SetText("HEAL")
+						damageText:SetText(rowData.attackDamage)
+						damageText:SetColor(0, 1, 0, 1)
+				elseif rowData.resultType == ACTION_RESULT_ABSORBED then
+					damageLabel:SetText("ABSORB")
+					damageText:SetText(rowData.attackDamage)
+					damageText:SetColor(0, 0, 1, 1)
+				elseif rowData.resultType == ACTION_RESULT_HEAL_ABSORBED then
+					damageLabel:SetText("HEAL ABSORB")
+					damageText:SetText(rowData.attackDamage)
+					damageText:SetColor(0, 1, 1, 1)
+				elseif rowData.resultType == ACTION_RESULT_DODGED then
+					damageLabel:SetText("DODGE")
+					damageText:SetText(rowData.attackDamage)
+					damageText:SetColor(0, 0, 1, 1)
+				elseif rowData.resultType == ACTION_RESULT_ROOTED then
+					damageLabel:SetText("ROOT")
+					damageText:SetText("")
+				elseif rowData.resultType == ACTION_RESULT_REFLECTED then
+					damageLabel:SetText("REFLECT")
+					damageText:SetText(rowData.attackDamage)
+					damageText:SetColor(0, 0, 1, 1)
+				elseif rowData.resultType == ACTION_RESULT_INTERRUPT then
+					damageLabel:SetText("INTERRUPT")
+					damageText:SetText("")
+				elseif rowData.resultType == ACTION_RESULT_SILENCED then
+					damageLabel:SetText("SILENCED")
+					damageText:SetText("")
+				elseif rowData.resultType == ACTION_RESULT_SNARED then
+					damageLabel:SetText("SNARED")
+					damageText:SetText("")
+				elseif rowData.resultType == ACTION_RESULT_STUNNED then
+					damageLabel:SetText("STUNNED")
+					damageText:SetText("")
+				else
+					damageLabel:SetText("DMG")
+					damageText:SetText(rowData.attackDamage)
+					damageText:SetColor(1, 0, 0, 1)
+				end
+				
+				local attackerName = currentRow:GetNamedChild("AttackText"):GetNamedChild("AttackerName")
+				local attackName = currentRow:GetNamedChild("AttackText"):GetNamedChild("AttackName")
+				
+				attackName:ClearAnchors()
+				attackName:SetAnchor(TOPLEFT, attackerName, BOTTOMLEFT, 0, 2)
+				attackName:SetAnchor(TOPRIGHT, attackerName, BOTTOMRIGHT, 0, 2)
+				attackName:SetText(rowData.attackName)
+				attackerName:SetHidden(false)
+				attackerName:SetText(rowData.attackerName)
+				
+			end
+		end, 2500)
+	end)
+	
+	--reset attack list on respawn.
+	EVENT_MANAGER:RegisterForEvent(ADR.name, EVENT_PLAYER_ALIVE, function() 
+		ADR.attackList = {} 
+	end)
+	
+	EVENT_MANAGER:RegisterForEvent(ADR.name, EVENT_COMBAT_EVENT, ADR.OnCombatEvent)
+	EVENT_MANAGER:AddFilterForEvent(ADR.name, EVENT_COMBAT_EVENT, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
+end
+	
+function ADR.OnAddOnLoaded(event, addonName)
+	if addonName == ADR.name then
+		ADR.Initialize()
+		EVENT_MANAGER:UnregisterForEvent(ADR.name, EVENT_ADD_ON_LOADED)
+	end
+end
+
+EVENT_MANAGER:RegisterForEvent(ADR.name, EVENT_ADD_ON_LOADED, ADR.OnAddOnLoaded)
