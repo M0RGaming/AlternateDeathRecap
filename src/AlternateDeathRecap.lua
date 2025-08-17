@@ -21,10 +21,9 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 	--track skills that cost health.
 	--Doesn't track vamp drain.
 	if sourceType == COMBAT_UNIT_TYPE_PLAYER then 
-		local cost = GetAbilityCost(abilityID, COMBAT_MECHANIC_FLAGS_HEALTH)
-		if cost ~= 0 then 
+		if ADR.healthCostSkills[abilityName] == true then
 			result = ACTION_RESULT_DAMAGE
-			hitValue = cost
+			hitValue = GetAbilityCost(abilityID, COMBAT_MECHANIC_FLAGS_HEALTH, nil, "player")
 		end
 		
 		--Only track one cast per skill.
@@ -302,6 +301,22 @@ function ADR.Initialize()
 	ADR.savedVariables = ZO_SavedVars:NewAccountWide("ADRSavedVariables", 1, nil, ADR.defaults, GetWorldName())
 	ADR.lastCastTimes = {}
 	
+	ADR.healthCostSkills = {
+		["Equilibrium"] = true,
+		["Balance"] = true,
+		["Spell Symmetry"] = true,
+		["Blood Altar"] = true,
+		["Sanguine Altar"] = true,
+		["Overflowing Altar"] = true,
+		["Eviscerate"] = true,
+		["Blood for Blood"] = true,
+		["Arterial Burst"] = true,
+		["Expunge"] = true,
+		["Hexproof"] = true,
+		["Siphoning Strikes"] = true,
+		["Siphoning Attacks"] = true,
+		["Leeching Strikes"] = true,
+	}
 	
 	--[[attacks can include incoming heals or any of the special cases included in EVENT_COMBAT_EVENT
 	   Indexes from 1 to 25
