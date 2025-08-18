@@ -104,7 +104,7 @@ end
 function ADR.Initialize()
 	
 	ADR.lastCastTimes = {}
-	ADR.timeLength = 20
+	ADR.timeLength = 10
 	GetNumKillingAttacks = function() return ADR.attackList.size end
 	
 	ADR.healthCostSkills = {
@@ -123,6 +123,10 @@ function ADR.Initialize()
 		["Siphoning Attacks"] = true,
 		["Leeching Strikes"] = true,
 	}
+	
+	SLASH_COMMANDS["/togglerecap"] = function()
+		ZO_DeathRecap:SetHidden(not ZO_DeathRecap:IsHidden())
+	end
 	
   --[[ZO_DeathRecapScrollContainerScrollChildAttacks																				Type: Control
 	--  ZO_DeathRecapScrollContainerScrollChildAttacks1																				Type:
@@ -251,6 +255,15 @@ function ADR.Initialize()
 				attackerName:SetText(rowData.attackerName)
 				
 			end
+			
+			--[[
+			If I try to show the death recap after the player revives, it won't show each line
+			unless the animation has already played while the player died. I can't find a way to manually 
+			play this animation, so I'm just going to ensure that it always gets played while dead.
+			]]
+			DEATH:ToggleDeathRecap()
+			DEATH:ToggleDeathRecap()
+			
 		end, 2500)
 	end)
 	

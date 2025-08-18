@@ -4,7 +4,7 @@ ADR.attackList = {
 	data = {},
 	front = 1,
 	back = 0,
-	maxAttacks = 40,
+	maxAttacks = 25,
 	size = 0
 }
 
@@ -13,7 +13,7 @@ function ADR.Reset()
 		data = {},
 		front = 1,
 		back = 0,
-		maxAttacks = 40,
+		maxAttacks = 25,
 		size = 0
 	}
 end
@@ -34,7 +34,7 @@ function ADR.EnqueueAttack(attack)
 	end
 	
 	ADR.attackList.size = ADR.attackList.size + 1
-	ADR.attackList.back = (ADR.attackList.back%ADR.attackList.size) + 1
+	ADR.attackList.back = (ADR.attackList.back%ADR.attackList.maxAttacks) + 1
 	ADR.attackList.data[ADR.attackList.back] = attack
 end
 
