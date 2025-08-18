@@ -4,4 +4,5 @@
 ## Version: 1.0.0
 ## IsLibrary: False
 
-AlternateDeathRecap.lua
+queue.lua
+main.lua
