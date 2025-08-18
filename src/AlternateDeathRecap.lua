@@ -55,7 +55,6 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 				attackIcon = attack_icon,
 				wasKillingBlow = false,
 				lastUpdateAgoMS = GetGameTimeMilliseconds(),
-				numAttackHits = 1,
 				attackerName = sourceName,
 			}
 			
@@ -67,7 +66,7 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 			table.insert(ADR.attackList, attackInfo)
 			table.sort(ADR.attackList, SortAttacks)
 			
-			if #ADR.attackList > ADR.savedVariables.maxAttacks then 
+			if #ADR.attackList > ADR.maxAttacks then 
 				table.remove(ADR.attackList, 1)
 			end
 			
@@ -88,14 +87,13 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 				attackIcon = attack_icon,
 				wasKillingBlow = false,
 				lastUpdateAgoMS = GetGameTimeMilliseconds(),
-				numAttackHits = 1,
 				attackerName = sourceName,
 			}
 			
 			table.insert(ADR.attackList, attackInfo)
 			table.sort(ADR.attackList, SortAttacks)
 			
-			if #ADR.attackList > ADR.savedVariables.maxAttacks then 
+			if #ADR.attackList > ADR.maxAttacks then 
 				table.remove(ADR.attackList, 1)
 			end
 	elseif result == ACTION_RESULT_ABSORBED then
@@ -109,14 +107,13 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 			attackIcon = attack_icon,
 			wasKillingBlow = false,
 			lastUpdateAgoMS = GetGameTimeMilliseconds(),
-			numAttackHits = 1, 
 			attackerName = sourceName,
 		}
 		
 		table.insert(ADR.attackList, attackInfo)
 		table.sort(ADR.attackList, SortAttacks)
 		
-		if #ADR.attackList > ADR.savedVariables.maxAttacks then 
+		if #ADR.attackList > ADR.maxAttacks then 
 			table.remove(ADR.attackList, 1)
 		end
 	elseif result == ACTION_RESULT_HEAL_ABSORBED then
@@ -130,14 +127,13 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 			attackIcon = attack_icon,
 			wasKillingBlow = false,
 			lastUpdateAgoMS = GetGameTimeMilliseconds(),
-			numAttackHits = 1, 
 			attackerName = sourceName,
 		}
 		
 		table.insert(ADR.attackList, attackInfo)
 		table.sort(ADR.attackList, SortAttacks)
 		
-		if #ADR.attackList > ADR.savedVariables.maxAttacks then 
+		if #ADR.attackList > ADR.maxAttacks then 
 			table.remove(ADR.attackList, 1)
 		end
 	
@@ -151,14 +147,13 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 			attackIcon = attack_icon,
 			wasKillingBlow = false,
 			lastUpdateAgoMS = GetGameTimeMilliseconds(),
-			numAttackHits = 1, 
 			attackerName = sourceName,
 		}
 		
 		table.insert(ADR.attackList, attackInfo)
 		table.sort(ADR.attackList, SortAttacks)
 		
-		if #ADR.attackList > ADR.savedVariables.maxAttacks then 
+		if #ADR.attackList > ADR.maxAttacks then 
 			table.remove(ADR.attackList, 1)
 		end
 	
@@ -172,14 +167,13 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 			attackIcon = attack_icon,
 			wasKillingBlow = false,
 			lastUpdateAgoMS = GetGameTimeMilliseconds(),
-			numAttackHits = 1, 
 			attackerName = sourceName,
 		}
 		
 		table.insert(ADR.attackList, attackInfo)
 		table.sort(ADR.attackList, SortAttacks)
 		
-		if #ADR.attackList > ADR.savedVariables.maxAttacks then 
+		if #ADR.attackList > ADR.maxAttacks then 
 			table.remove(ADR.attackList, 1)
 		end
 	
@@ -193,14 +187,13 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 			attackIcon = attack_icon,
 			wasKillingBlow = false,
 			lastUpdateAgoMS = GetGameTimeMilliseconds(),
-			numAttackHits = 1, 
 			attackerName = sourceName,
 		}
 		
 		table.insert(ADR.attackList, attackInfo)
 		table.sort(ADR.attackList, SortAttacks)
 		
-		if #ADR.attackList > ADR.savedVariables.maxAttacks then 
+		if #ADR.attackList > ADR.maxAttacks then 
 			table.remove(ADR.attackList, 1)
 		end
 	
@@ -214,14 +207,13 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 			attackIcon = attack_icon,
 			wasKillingBlow = false,
 			lastUpdateAgoMS = GetGameTimeMilliseconds(),
-			numAttackHits = 1, 
 			attackerName = sourceName,
 		}
 		
 		table.insert(ADR.attackList, attackInfo)
 		table.sort(ADR.attackList, SortAttacks)
 		
-		if #ADR.attackList > ADR.savedVariables.maxAttacks then 
+		if #ADR.attackList > ADR.maxAttacks then 
 			table.remove(ADR.attackList, 1)
 		end
 	
@@ -236,14 +228,13 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 			attackIcon = attack_icon,
 			wasKillingBlow = false,
 			lastUpdateAgoMS = GetGameTimeMilliseconds(),
-			numAttackHits = 1, 
 			attackerName = sourceName,
 		}
 		
 		table.insert(ADR.attackList, attackInfo)
 		table.sort(ADR.attackList, SortAttacks)
 		
-		if #ADR.attackList > ADR.savedVariables.maxAttacks then 
+		if #ADR.attackList > ADR.maxAttacks then 
 			table.remove(ADR.attackList, 1)
 		end
 	
@@ -257,14 +248,13 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 			attackIcon = attack_icon,
 			wasKillingBlow = false,
 			lastUpdateAgoMS = GetGameTimeMilliseconds(),
-			numAttackHits = 1, 
 			attackerName = sourceName,
 		}
 		
 		table.insert(ADR.attackList, attackInfo)
 		table.sort(ADR.attackList, SortAttacks)
 		
-		if #ADR.attackList > ADR.savedVariables.maxAttacks then 
+		if #ADR.attackList > ADR.maxAttacks then 
 			table.remove(ADR.attackList, 1)
 		end
 	
@@ -278,14 +268,13 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 			attackIcon = attack_icon,
 			wasKillingBlow = false,
 			lastUpdateAgoMS = GetGameTimeMilliseconds(),
-			numAttackHits = 1, 
 			attackerName = sourceName,
 		}
 		
 		table.insert(ADR.attackList, attackInfo)
 		table.sort(ADR.attackList, SortAttacks)
 		
-		if #ADR.attackList > ADR.savedVariables.maxAttacks then 
+		if #ADR.attackList > ADR.maxAttacks then 
 			table.remove(ADR.attackList, 1)
 		end
 	end
@@ -293,13 +282,9 @@ end
 
 function ADR.Initialize()
 	
-	ADR.defaults = {
-		maxAttacks = 25,
-		timeLength = 10,
-	}
-	
-	ADR.savedVariables = ZO_SavedVars:NewAccountWide("ADRSavedVariables", 1, nil, ADR.defaults, GetWorldName())
 	ADR.lastCastTimes = {}
+	ADR.maxAttacks = 25
+	ADR.timeLength = 20
 	
 	ADR.healthCostSkills = {
 		["Equilibrium"] = true,
@@ -325,19 +310,6 @@ function ADR.Initialize()
 	   TODO: A more efficient data structure should be possible with start/end indexes. table.remove(ADR.attackList, 1) shifts elements]]
 	ADR.attackList = {}
 	GetNumKillingAttacks = function() return #ADR.attackList end
-	
-	SLASH_COMMANDS["/setmaxattacks"] = function(x) 
-		if type(x) == "number" then ADR.savedVariables.maxAttacks = x end
-	end
-	
-	SLASH_COMMANDS["/setmaxtime"] = function(x) 
-		if type(x) == "number" then ADR.savedVariables.timeLength = x end
-	end
-	
-	SLASH_COMMANDS["/adr_resetdefaults"] = function()
-		ADR.savedVariables.maxAttacks = ADR.defaults.maxAttacks
-		ADR.savedVariables.timeLength = ADR.defaults.timeLength
-	end
 	
   --[[ZO_DeathRecapScrollContainerScrollChildAttacks																				Type: Control
 	--  ZO_DeathRecapScrollContainerScrollChildAttacks1																				Type:
@@ -376,13 +348,13 @@ function ADR.Initialize()
 				v.lastUpdateAgoMS = killTime - v.lastUpdateAgoMS
 			end
 		end
-		while ADR.attackList[1] ~= nil and ADR.attackList[1].lastUpdateAgoMS > (ADR.savedVariables.timeLength * 1000) do
+		while ADR.attackList[1] ~= nil and ADR.attackList[1].lastUpdateAgoMS > (ADR.timeLength * 1000) do
 			table.remove(ADR.attackList, 1)
 		end
 		
 		--wait for the controls to be made before modifying them.
 		zo_callLater(function()
-			for i = 1, ADR.savedVariables.maxAttacks do
+			for i = 1, ADR.maxAttacks do
 				local rowData = ADR.attackList[i]
 				if rowData == nil then break end
 				
@@ -429,8 +401,7 @@ function ADR.Initialize()
 					damageText:SetText("")
 				elseif rowData.resultType == ACTION_RESULT_REFLECTED then
 					damageLabel:SetText("REFLECT")
-					damageText:SetText(rowData.attackDamage)
-					damageText:SetColor(0, 0, 1, 1)
+					damageText:SetText("")
 				elseif rowData.resultType == ACTION_RESULT_INTERRUPT then
 					damageLabel:SetText("INTERRUPT")
 					damageText:SetText("")
