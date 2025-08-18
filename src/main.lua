@@ -161,15 +161,13 @@ function ADR.Initialize()
 				v.lastUpdateAgoMS = killTime - v.lastUpdateAgoMS
 			elseif v ~= nil and v.lastUpdateAgoMS == nil then d(v) end
 		end
-		while ADR.Peek() ~= nil and ADR.Peek().lastUpdateAgoMS > (ADR.timeLengtsh * 1000) do
-			d(ADR.Peek().lastUpdateAgoMS)
+		while ADR.Peek() ~= nil and ADR.Peek().lastUpdateAgoMS > (ADR.timeLength * 1000) do
 			ADR.DequeueAttack()
 		end
 		
 		--wait for the controls to be made before modifying them.
 		zo_callLater(function()
 			local finalizedAttackList = ADR.GetOrderedList()
-			
 			for i = 1, #finalizedAttackList do
 				local rowData = finalizedAttackList[i]
 				
