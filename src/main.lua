@@ -33,7 +33,8 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 		result == ACTION_RESULT_DAMAGE_SHIELDED or
 		result == ACTION_RESULT_PRECISE_DAMAGE or
 		result == ACTION_RESULT_WRECKING_DAMAGE or 
-		result == ACTION_RESULT_FALL_DAMAGE then
+		result == ACTION_RESULT_FALL_DAMAGE or 
+		result == ACTION_RESULT_FALLING then
 		
 			local attackInfo =
 			{
@@ -83,7 +84,8 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 			result == ACTION_RESULT_ROOTED or 
 			result == ACTION_RESULT_SILENCED or 
 			result == ACTION_RESULT_SNARED or 
-			result == ACTION_RESULT_STUNNED then
+			result == ACTION_RESULT_STUNNED or 
+			result == ACTION_RESULT_FEARED then
 			
 		local attackInfo =
 		{
@@ -95,6 +97,20 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 			wasKillingBlow = false,
 			lastUpdateAgoMS = GetGameTimeMilliseconds(),
 			attackerName = sourceName,
+		}
+		
+		ADR.EnqueueAttack(attackInfo)
+	elseif result == ACTION_RESULT_KILLED_BY_SUBZONE then
+		local attackInfo =
+		{
+			resultType = result,
+			attackName = "Environmental Damage",
+			attackDamage = 999999,
+			attackOverflow = overflow,
+			attackIcon = "/esoui/art/icons/death_recap_environmental.dds",
+			wasKillingBlow = true,
+			lastUpdateAgoMS = GetGameTimeMilliseconds(),
+			attackerName = "",
 		}
 		
 		ADR.EnqueueAttack(attackInfo)
@@ -153,22 +169,17 @@ function ADR.Initialize()
 		ADR.lastCastTimes = {}
 	
 		--Setup timeline
-		local killTime = nil
+		local killTime = GetGameTimeMilliseconds()
 		for k, v in ipairs(ADR.attackList.data) do
 			if v ~= nil and v.wasKillingBlow then
 				killTime = v.lastUpdateAgoMS
 				break
 			end
 		end
-		--environmental damage edge case.
-		if killTime == nil then
-			killTime = ADR.attackList.data[ADR.attackList.back].lastUpdateAgoMS
-			ADR.attackList.data[ADR.attackList.back].wasKillingBlow = true
-		end
 		for k, v in ipairs(ADR.attackList.data) do
 			if v ~= nil and v.lastUpdateAgoMS ~= nil then
 				v.lastUpdateAgoMS = killTime - v.lastUpdateAgoMS
-			elseif v ~= nil and v.lastUpdateAgoMS == nil then d(v) end
+			end
 		end
 		while ADR.Peek() ~= nil and ADR.Peek().lastUpdateAgoMS > (ADR.timeLength * 1000) do
 			ADR.DequeueAttack()
@@ -219,6 +230,9 @@ function ADR.Initialize()
 					damageText:SetText("")
 				elseif rowData.resultType == ACTION_RESULT_ROOTED then
 					damageLabel:SetText("ROOT")
+					damageText:SetText("")
+				elseif rowData.resultType == ACTION_RESULT_FEARED then
+					damageLabel:SetText("FEARED")
 					damageText:SetText("")
 				elseif rowData.resultType == ACTION_RESULT_REFLECTED then
 					damageLabel:SetText("REFLECT")
