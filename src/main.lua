@@ -153,12 +153,17 @@ function ADR.Initialize()
 		ADR.lastCastTimes = {}
 	
 		--Setup timeline
-		local killTime
+		local killTime = nil
 		for k, v in ipairs(ADR.attackList.data) do
 			if v ~= nil and v.wasKillingBlow then
 				killTime = v.lastUpdateAgoMS
 				break
 			end
+		end
+		--environmental damage edge case.
+		if killTime == nil then
+			killTime = ADR.attackList.data[ADR.attackList.back].lastUpdateAgoMS
+			ADR.attackList.data[ADR.attackList.back].wasKillingBlow = true
 		end
 		for k, v in ipairs(ADR.attackList.data) do
 			if v ~= nil and v.lastUpdateAgoMS ~= nil then
@@ -211,8 +216,7 @@ function ADR.Initialize()
 					damageText:SetColor(0, 1, 1, 1)
 				elseif rowData.resultType == ACTION_RESULT_DODGED or rowData.attackName == "Roll Dodge" then
 					damageLabel:SetText("DODGE")
-					damageText:SetText(rowData.attackDamage)
-					damageText:SetColor(1, 0, 1, 1)
+					damageText:SetText("")
 				elseif rowData.resultType == ACTION_RESULT_ROOTED then
 					damageLabel:SetText("ROOT")
 					damageText:SetText("")
