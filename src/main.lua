@@ -3,9 +3,14 @@ ADR.name = "AlternateDeathRecap"
 
 function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, _log, sourceUnitID, targetUnitID, abilityID, overflow)
 	
+	--Fix ^M or ^Mx or similar unwanted characters on the sourceName.
 	if string.find(sourceName, "^", 1, true) ~= nil then sourceName = string.sub(sourceName, 1, (string.find(sourceName, "^", 1, true) - 1)) end
+	--We don't want revive snare/stun events to be tracked.
 	if string.find(string.lower(abilityName), "revive") ~= nil then return end
+	--We only want to display this once, so only one type is being tracked with all other types returning here.
 	if string.find(string.lower(abilityName), "break free") ~= nil and sourceType ~= COMBAT_UNIT_TYPE_PLAYER then return end
+	
+	local attack_icon = GetAbilityIcon(abilityID)
 	
 	--track skills that cost health.
 	--Doesn't track health-over-time skills.
@@ -23,7 +28,13 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 		end
 	end
 	
-	local attack_icon = GetAbilityIcon(abilityID)
+	--Don't track events with empty info.
+	if sourceName == "" or
+		abilityName == "" or
+		attack_icon == "/esoui/art/icons/icon_missing.dds" then
+			return
+	end
+		
 	
 	if result == ACTION_RESULT_DOT_TICK or
 		result == ACTION_RESULT_DOT_TICK_CRITICAL  or
@@ -105,7 +116,7 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 		{
 			resultType = result,
 			attackName = "Environmental Damage",
-			attackDamage = 999999,
+			attackDamage = "999,999",
 			attackOverflow = overflow,
 			attackIcon = "/esoui/art/icons/death_recap_environmental.dds",
 			wasKillingBlow = true,
@@ -254,11 +265,15 @@ function ADR.Initialize()
 					damageText:SetText("")
 				elseif rowData.resultType == ACTION_RESULT_DAMAGE_SHIELDED then
 					damageLabel:SetText("DMG")
-					damageText:SetText("("..rowData.attackDamage..")" )
+					damageText:SetText("("..(rowData.attackDamage + rowData.attackOverflow)..")" )
+					damageText:SetColor(1, 0, 0, 1)
+				elseif rowData.resultType == ACTION_RESULT_BLOCKED_DAMAGE then
+					damageLabel:SetText("DMG")
+					damageText:SetText((rowData.attackDamage + rowData.attackOverflow).."*" )
 					damageText:SetColor(1, 0, 0, 1)
 				else
 					damageLabel:SetText("DMG")
-					damageText:SetText(rowData.attackDamage)
+					damageText:SetText((rowData.attackDamage + rowData.attackOverflow))
 					damageText:SetColor(1, 0, 0, 1)
 				end
 				
