@@ -5,7 +5,8 @@ ADR.attackList = {
 	front = 1,
 	back = 0,
 	maxAttacks = 25,
-	size = 0
+	size = 0,
+	haveTimesBeenAltered = false,
 }
 
 function ADR.Reset()
@@ -14,7 +15,8 @@ function ADR.Reset()
 		front = 1,
 		back = 0,
 		maxAttacks = 25,
-		size = 0
+		size = 0,
+		haveTimesBeenAltered = false,
 	}
 end
 
