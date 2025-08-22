@@ -134,7 +134,7 @@ function ADR.Initialize()
 	ADR.timeLength = 10
 	GetNumKillingAttacks = function() 
 		--Do this extra stuff here to prevent race conditions.
-		if ADR.attackList.haveTimesBeenAltered = false then
+		if ADR.attackList.haveTimesBeenAltered == false then
 			--Setup timeline
 			local killTime = GetGameTimeMilliseconds()
 			for k, v in ipairs(ADR.attackList.data) do
@@ -203,7 +203,7 @@ function ADR.Initialize()
 		ADR.lastCastTimes = {}
 		
 		--race condition check, only do this once.
-		if ADR.attackList.haveTimesBeenAltered = false then
+		if ADR.attackList.haveTimesBeenAltered == false then
 			--Setup timeline
 			local killTime = GetGameTimeMilliseconds()
 			for k, v in ipairs(ADR.attackList.data) do
