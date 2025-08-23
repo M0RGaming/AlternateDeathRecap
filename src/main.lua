@@ -199,7 +199,8 @@ function ADR.Initialize()
 				local currentRow = ZO_DeathRecapScrollContainerScrollChildAttacks:GetNamedChild(tostring(i))
 				
 				--Change icon texture
-				currentRow:GetNamedChild("Icon"):SetTexture(rowData.attackIcon)
+				local attack_icon = currentRow:GetNamedChild("Icon")
+				attack_icon:SetTexture(rowData.attackIcon)
 				
 				--Display timeline using these controls.
 				local numAttackHits = currentRow:GetNamedChild("NumAttackHits")
