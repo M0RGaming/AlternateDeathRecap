@@ -56,6 +56,7 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 				attackIcon = attack_icon,
 				wasKillingBlow = false,
 				lastUpdateAgoMS = GetGameTimeMilliseconds(),
+				displayTimeMS = nil,
 				attackerName = sourceName,
 			}
 			
@@ -83,6 +84,7 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 				attackIcon = attack_icon,
 				wasKillingBlow = false,
 				lastUpdateAgoMS = GetGameTimeMilliseconds(),
+				displayTimeMS = nil,
 				attackerName = sourceName,
 			}
 			
@@ -108,6 +110,7 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 			attackIcon = attack_icon,
 			wasKillingBlow = false,
 			lastUpdateAgoMS = GetGameTimeMilliseconds(),
+			displayTimeMS = nil,
 			attackerName = sourceName,
 		}
 		
@@ -122,6 +125,7 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 			attackIcon = "/esoui/art/icons/death_recap_environmental.dds",
 			wasKillingBlow = true,
 			lastUpdateAgoMS = GetGameTimeMilliseconds(),
+			displayTimeMS = nil,
 			attackerName = "",
 		}
 		
@@ -179,15 +183,15 @@ function ADR.Initialize()
 	EVENT_MANAGER:RegisterForEvent(ADR.name, EVENT_PLAYER_DEAD, function() 
 		ADR.lastCastTimes = {}
 
-		--update times
-		for k, v in ipairs(ADR.attackList.data) do
-			if v ~= nil and v.lastUpdateAgoMS ~= nil then
-				v.lastUpdateAgoMS = ADR.Peek().lastUpdateAgoMS - v.lastUpdateAgoMS
-			end
-		end
-		
 		--wait for the controls to be made before modifying them.
 		zo_callLater(function()
+			--update display times
+			for k, v in ipairs(ADR.attackList.data) do
+				if v ~= nil and v.lastUpdateAgoMS ~= nil then
+					v.displayTimeMS = ADR.attackList.data[ADR.attackList.back].lastUpdateAgoMS - v.lastUpdateAgoMS
+				end
+			end
+		
 			local finalizedAttackList = ADR.GetOrderedList()
 			for i = 1, #finalizedAttackList do
 				local rowData = finalizedAttackList[i]
@@ -202,8 +206,12 @@ function ADR.Initialize()
 				local attackCount = numAttackHits:GetNamedChild("Count")
 				if rowData.wasKillingBlow == false then
 					numAttackHits:SetHidden(false)
-					attackCount:SetHidden(false)
-					attackCount:SetText("-"..tostring(zo_roundToNearest(rowData.lastUpdateAgoMS/1000, .01)).."s")
+					if rowData.displayTimeMS ~= nil then 
+						attackCount:SetHidden(false)
+						attackCount:SetText("-"..tostring(zo_roundToNearest(rowData.displayTimeMS/1000, .01)).."s")
+					else
+						attackCount:SetHidden(true)
+					end
 					numAttackHits:GetNamedChild("HitIcon"):SetHidden(true)
 					numAttackHits:GetNamedChild("KillIcon"):SetHidden(true)
 				end
