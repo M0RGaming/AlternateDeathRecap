@@ -69,6 +69,7 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 		(result == ACTION_RESULT_CRITICAL_HEAL or 
 		result == ACTION_RESULT_HEAL or
 		result == ACTION_RESULT_HOT_TICK or
+		result == ACTION_RESULT_HOT_TICK_CRITICAL or
 		result == ACTION_RESULT_HOT) then
 				
 			--incoming healing (No overflow)
@@ -131,7 +132,6 @@ end
 function ADR.Initialize()
 	
 	ADR.lastCastTimes = {}
-	ADR.timeLength = 10
 	GetNumKillingAttacks = function() return ADR.attackList.size end
 	
 	ADR.healthCostSkills = {
@@ -211,13 +211,17 @@ function ADR.Initialize()
 				--Set damage and label
 				local damageLabel = currentRow:GetNamedChild("DamageLabel")
 				local damageText = currentRow:GetNamedChild("Damage")
-				if rowData.resultType == ACTION_RESULT_CRITICAL_HEAL or 
-					rowData.resultType == ACTION_RESULT_HEAL or
+				if rowData.resultType == ACTION_RESULT_HEAL or
 					rowData.resultType == ACTION_RESULT_HOT_TICK or
 					rowData.resultType == ACTION_RESULT_HOT then
 						damageLabel:SetText("HEAL")
 						damageText:SetText(rowData.attackDamage)
 						damageText:SetColor(0, 1, 0, 1)
+				elseif rowData.resultType == ACTION_RESULT_CRITICAL_HEAL or 
+						rowData.resultType == ACTION_RESULT_HOT_TICK_CRITICAL then
+							damageLabel:SetText("HEAL")
+							damageText:SetText(rowData.attackDamage.."!")
+							damageText:SetColor(0, 1, 0, 1)
 				elseif rowData.resultType == ACTION_RESULT_ABSORBED then
 					damageLabel:SetText("ABSORB")
 					damageText:SetText(rowData.attackDamage)
@@ -261,7 +265,12 @@ function ADR.Initialize()
 					damageLabel:SetText("DMG")
 					damageText:SetText((rowData.attackDamage + rowData.attackOverflow).."*" )
 					damageText:SetColor(1, 0, 0, 1)
-				else
+				elseif rowData.resultType == ACTION_RESULT_DOT_TICK_CRITICAL or
+						rowData.resultType == ACTION_RESULT_CRITICAL_DAMAGE then
+							damageLabel:SetText("DMG")
+							damageText:SetText((rowData.attackDamage + rowData.attackOverflow).."!")
+							damageText:SetColor(1, 0, 0, 1)
+				else --regular damage.
 					damageLabel:SetText("DMG")
 					damageText:SetText((rowData.attackDamage + rowData.attackOverflow))
 					damageText:SetColor(1, 0, 0, 1)

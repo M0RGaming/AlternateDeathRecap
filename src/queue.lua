@@ -8,6 +8,8 @@ ADR.attackList = {
 	size = 0,
 }
 
+ADR.timeLength = 10
+
 function ADR.Reset()
 	ADR.attackList = {
 		data = {},
@@ -15,7 +17,6 @@ function ADR.Reset()
 		back = 0,
 		maxAttacks = 25,
 		size = 0,
-		haveTimesBeenAltered = false,
 	}
 end
 
@@ -26,6 +27,7 @@ function ADR.DequeueAttack()
 	ADR.attackList.size = ADR.attackList.size - 1
 	ADR.attackList.data[ADR.attackList.front] = nil
 	ADR.attackList.front = (ADR.attackList.front%ADR.attackList.maxAttacks) + 1
+	
 	return attack
 end
 
