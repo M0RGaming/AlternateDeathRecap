@@ -132,30 +132,7 @@ function ADR.Initialize()
 	
 	ADR.lastCastTimes = {}
 	ADR.timeLength = 10
-	GetNumKillingAttacks = function() 
-		--Do this extra stuff here to prevent race conditions.
-		if ADR.attackList.haveTimesBeenAltered == false then
-			--Setup timeline
-			local killTime = GetGameTimeMilliseconds()
-			for k, v in ipairs(ADR.attackList.data) do
-				if v ~= nil and v.wasKillingBlow then
-					killTime = v.lastUpdateAgoMS
-					break
-				end
-			end
-			for k, v in ipairs(ADR.attackList.data) do
-				if v ~= nil and v.lastUpdateAgoMS ~= nil then
-					v.lastUpdateAgoMS = killTime - v.lastUpdateAgoMS
-				end
-			end
-			while ADR.Peek() ~= nil and ADR.Peek().lastUpdateAgoMS > (ADR.timeLength * 1000) do
-				ADR.DequeueAttack()
-			end
-			ADR.attackList.haveTimesBeenAltered = true
-		end
-		
-		return ADR.attackList.size 
-	end
+	GetNumKillingAttacks = function() return ADR.attackList.size end
 	
 	ADR.healthCostSkills = {
 		["Equilibrium"] = true,
@@ -201,26 +178,12 @@ function ADR.Initialize()
 	--				($parent) AttackName				ZO_DeathRecapScrollContainerScrollChildAttacks1AttackTextAttackName			Type:]]
 	EVENT_MANAGER:RegisterForEvent(ADR.name, EVENT_PLAYER_DEAD, function() 
 		ADR.lastCastTimes = {}
-		
-		--race condition check, only do this once.
-		if ADR.attackList.haveTimesBeenAltered == false then
-			--Setup timeline
-			local killTime = GetGameTimeMilliseconds()
-			for k, v in ipairs(ADR.attackList.data) do
-				if v ~= nil and v.wasKillingBlow then
-					killTime = v.lastUpdateAgoMS
-					break
-				end
+
+		--update times
+		for k, v in ipairs(ADR.attackList.data) do
+			if v ~= nil and v.lastUpdateAgoMS ~= nil then
+				v.lastUpdateAgoMS = ADR.Peek().lastUpdateAgoMS - v.lastUpdateAgoMS
 			end
-			for k, v in ipairs(ADR.attackList.data) do
-				if v ~= nil and v.lastUpdateAgoMS ~= nil then
-					v.lastUpdateAgoMS = killTime - v.lastUpdateAgoMS
-				end
-			end
-			while ADR.Peek() ~= nil and ADR.Peek().lastUpdateAgoMS > (ADR.timeLength * 1000) do
-				ADR.DequeueAttack()
-			end
-			ADR.attackList.haveTimesBeenAltered = true
 		end
 		
 		--wait for the controls to be made before modifying them.

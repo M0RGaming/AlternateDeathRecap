@@ -6,7 +6,6 @@ ADR.attackList = {
 	back = 0,
 	maxAttacks = 25,
 	size = 0,
-	haveTimesBeenAltered = false,
 }
 
 function ADR.Reset()
@@ -38,6 +37,12 @@ function ADR.EnqueueAttack(attack)
 	ADR.attackList.size = ADR.attackList.size + 1
 	ADR.attackList.back = (ADR.attackList.back%ADR.attackList.maxAttacks) + 1
 	ADR.attackList.data[ADR.attackList.back] = attack
+	
+	--Check for oldest elements to be removed.
+	--I don't like checking this every time we add to the list, but hte other options cause issues with race conditions.
+	while ADR.Peek() ~= nil and (attack.lastUpdateAgoMS - ADR.Peek().lastUpdateAgoMS) > (ADR.timeLength * 1000) do
+		ADR.DequeueAttack()
+	end
 end
 
 function ADR.Peek()
