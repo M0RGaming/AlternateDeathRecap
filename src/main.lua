@@ -185,14 +185,13 @@ function ADR.Initialize()
 
 		--wait for the controls to be made before modifying them.
 		zo_callLater(function()
+			local finalizedAttackList = ADR.GetOrderedList()
+			
 			--update display times
-			for k, v in ipairs(ADR.attackList.data) do
-				if v ~= nil and v.lastUpdateAgoMS ~= nil then
-					v.displayTimeMS = ADR.attackList.data[ADR.attackList.back].lastUpdateAgoMS - v.lastUpdateAgoMS
-				end
+			for k, v in ipairs(finalizedAttackList) do
+				v.displayTimeMS = finalizedAttackList[#finalizedAttackList].lastUpdateAgoMS - v.lastUpdateAgoMS
 			end
 		
-			local finalizedAttackList = ADR.GetOrderedList()
 			for i = 1, #finalizedAttackList do
 				local rowData = finalizedAttackList[i]
 				
