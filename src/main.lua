@@ -11,6 +11,7 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 	if string.find(string.lower(abilityName), "break free") ~= nil and sourceType ~= COMBAT_UNIT_TYPE_PLAYER then return end
 	
 	local attack_icon = GetAbilityIcon(abilityID)
+	local health, maxHealth = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_HEALTH)
 	
 	--track skills that cost health.
 	--Doesn't track health-over-time skills.
@@ -58,6 +59,8 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 				lastUpdateAgoMS = GetGameTimeMilliseconds(),
 				displayTimeMS = nil,
 				attackerName = sourceName,
+				currentHealth = health,
+				currentMaxHealth = maxHealth,
 			}
 			
 			if attackInfo.attackOverflow ~= 0 then
@@ -86,6 +89,8 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 				lastUpdateAgoMS = GetGameTimeMilliseconds(),
 				displayTimeMS = nil,
 				attackerName = sourceName,
+				currentHealth = health,
+				currentMaxHealth = maxHealth,
 			}
 			
 			ADR.EnqueueAttack(attackInfo)
@@ -112,6 +117,8 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 			lastUpdateAgoMS = GetGameTimeMilliseconds(),
 			displayTimeMS = nil,
 			attackerName = sourceName,
+			currentHealth = health,
+			currentMaxHealth = maxHealth,
 		}
 		
 		ADR.EnqueueAttack(attackInfo)
@@ -127,6 +134,8 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 			lastUpdateAgoMS = GetGameTimeMilliseconds(),
 			displayTimeMS = nil,
 			attackerName = "",
+			currentHealth = health,
+			currentMaxHealth = maxHealth,
 		}
 		
 		ADR.EnqueueAttack(attackInfo)
@@ -214,7 +223,22 @@ function ADR.Initialize()
 					end
 					numAttackHits:GetNamedChild("HitIcon"):SetHidden(true)
 					numAttackHits:GetNamedChild("KillIcon"):SetHidden(true)
+					
+					numAttackHits:ClearAnchors()
+					numAttackHits:SetAnchor(RIGHT, attack_icon, LEFT, -15, -10)
 				end
+				
+				--HP display using new control.
+				local health_display = GetControl(currentRow:GetName().."Health")
+				if health_display == nil then
+					health_display = CreateControl(currentRow:GetName().."Health", currentRow, CT_LABEL)
+					health_display:SetHidden(false)
+					health_display:SetFont("ZoFontGamepad22")
+					health_display:SetColor(1, 0.25, 0.25, 1)
+					health_display:SetAnchor(TOPRIGHT, attackCount, BOTTOMRIGHT, 0, -2)
+				end
+				health_display:SetText("HP: "..ZO_CommaDelimitDecimalNumber(rowData.currentHealth).."/"..ZO_CommaDelimitDecimalNumber(rowData.currentMaxHealth))
+				if rowData.wasKillingBlow then health_display:SetHidden(true) end
 				
 				--Set damage and label
 				local damageLabel = currentRow:GetNamedChild("DamageLabel")
