@@ -294,13 +294,18 @@ function ADR.Initialize()
 				attackerName:SetHidden(false)
 				attackerName:SetText(rowData.attackerName)
 				
+				--avoid the need to wait for animations.
+				attack_icon:SetAlpha(1)
+				attack_icon:SetScale(1)
+				attack_icon:SetHidden(false)
+				currentRow:GetNamedChild("Text"):SetAlpha(1)
+				currentRow:GetNamedChild("Text"):SetHidden(false)
+				
+				
 			end
 			
-			--[[
-			If I try to show the death recap after the player revives, it won't show each line
-			unless the animation has already played while the player died. I can't find a way to manually 
-			play this animation, so I'm just going to ensure that it always gets played while dead.
-			]]
+			
+			--Force the animation to start playing to avoid some weird, inconsistent visual bugs.
 			DEATH:ToggleDeathRecap()
 			DEATH:ToggleDeathRecap()
 			
