@@ -11,6 +11,8 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 	if string.find(string.lower(abilityName), "break free") ~= nil and sourceType ~= COMBAT_UNIT_TYPE_PLAYER then return end
 	
 	local attack_icon = GetAbilityIcon(abilityID)
+	if attack_icon == "/esoui/art/icons/icon_missing.dds" or attack_icon == nil then return end
+
 	local health, maxHealth = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_HEALTH)
 	
 	--track skills that cost health.
@@ -122,23 +124,6 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 		}
 		
 		ADR.EnqueueAttack(attackInfo)
-	elseif result == ACTION_RESULT_KILLED_BY_SUBZONE then
-		local attackInfo =
-		{
-			resultType = result,
-			attackName = "Environmental Damage",
-			attackDamage = "999,999",
-			attackOverflow = overflow,
-			attackIcon = "/esoui/art/icons/death_recap_environmental.dds",
-			wasKillingBlow = true,
-			lastUpdateAgoMS = GetGameTimeMilliseconds(),
-			displayTimeMS = nil,
-			attackerName = "",
-			currentHealth = health,
-			currentMaxHealth = maxHealth,
-		}
-		
-		ADR.EnqueueAttack(attackInfo)
 	end
 end
 
@@ -208,7 +193,9 @@ function ADR.Initialize()
 				
 				--Change icon texture
 				local attack_icon = currentRow:GetNamedChild("Icon")
-				attack_icon:SetTexture(rowData.attackIcon)
+				if rowData.attackIcon ~= nil then
+					attack_icon:SetTexture(rowData.attackIcon)
+				end
 				
 				--Display timeline using these controls.
 				local numAttackHits = currentRow:GetNamedChild("NumAttackHits")
@@ -247,20 +234,20 @@ function ADR.Initialize()
 					rowData.resultType == ACTION_RESULT_HOT_TICK or
 					rowData.resultType == ACTION_RESULT_HOT then
 						damageLabel:SetText("HEAL")
-						damageText:SetText(rowData.attackDamage)
+						damageText:SetText(ZO_CommaDelimitNumber(rowData.attackDamage))
 						damageText:SetColor(0, 1, 0, 1)
 				elseif rowData.resultType == ACTION_RESULT_CRITICAL_HEAL or 
 						rowData.resultType == ACTION_RESULT_HOT_TICK_CRITICAL then
 							damageLabel:SetText("HEAL")
-							damageText:SetText(rowData.attackDamage.."!")
+							damageText:SetText(ZO_CommaDelimitNumber(rowData.attackDamage).."!")
 							damageText:SetColor(0, 1, 0, 1)
 				elseif rowData.resultType == ACTION_RESULT_ABSORBED then
 					damageLabel:SetText("ABSORB")
-					damageText:SetText(rowData.attackDamage)
+					damageText:SetText(ZO_CommaDelimitNumber(rowData.attackDamage))
 					damageText:SetColor(0, 0, 1, 1)
 				elseif rowData.resultType == ACTION_RESULT_HEAL_ABSORBED then
 					damageLabel:SetText("HEAL ABSORB")
-					damageText:SetText(rowData.attackDamage)
+					damageText:SetText(ZO_CommaDelimitNumber(rowData.attackDamage)) 
 					damageText:SetColor(0, 1, 1, 1)
 				elseif rowData.resultType == ACTION_RESULT_DODGED or rowData.attackName == "Roll Dodge" then
 					damageLabel:SetText("DODGE")
@@ -291,11 +278,11 @@ function ADR.Initialize()
 					damageText:SetText("")
 				elseif rowData.resultType == ACTION_RESULT_DAMAGE_SHIELDED then
 					damageLabel:SetText("DMG")
-					damageText:SetText("("..(rowData.attackDamage + rowData.attackOverflow)..")" )
+					damageText:SetText("("..ZO_CommaDelimitNumber((rowData.attackDamage + rowData.attackOverflow))..")" )
 					damageText:SetColor(1, 0, 0, 1)
 				elseif rowData.resultType == ACTION_RESULT_BLOCKED_DAMAGE then
 					damageLabel:SetText("DMG")
-					damageText:SetText((rowData.attackDamage + rowData.attackOverflow).."*" )
+					damageText:SetText(ZO_CommaDelimitNumb er(rowData.attackDamage + rowData.attackOverflow).."*" )
 					damageText:SetColor(1, 0, 0, 1)
 				elseif rowData.resultType == ACTION_RESULT_DOT_TICK_CRITICAL or
 						rowData.resultType == ACTION_RESULT_CRITICAL_DAMAGE then
