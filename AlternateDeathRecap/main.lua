@@ -282,7 +282,7 @@ function ADR.Initialize()
 					damageText:SetColor(1, 0, 0, 1)
 				elseif rowData.resultType == ACTION_RESULT_BLOCKED_DAMAGE then
 					damageLabel:SetText("DMG")
-					damageText:SetText(ZO_CommaDelimitNumb er(rowData.attackDamage + rowData.attackOverflow).."*" )
+					damageText:SetText(ZO_CommaDelimitNumber(rowData.attackDamage + rowData.attackOverflow).."*" )
 					damageText:SetColor(1, 0, 0, 1)
 				elseif rowData.resultType == ACTION_RESULT_DOT_TICK_CRITICAL or
 						rowData.resultType == ACTION_RESULT_CRITICAL_DAMAGE then
