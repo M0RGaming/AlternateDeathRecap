@@ -188,131 +188,129 @@ function ADR.Initialize()
 		
 			for i = 1, #finalizedAttackList do
 				local rowData = finalizedAttackList[i]
-				
-				local currentRow = ZO_DeathRecapScrollContainerScrollChildAttacks:GetNamedChild(tostring(i))
-				
-				--Change icon texture
-				local attack_icon = currentRow:GetNamedChild("Icon")
-				if rowData.attackIcon ~= nil then
-					attack_icon:SetTexture(rowData.attackIcon)
-				end
-				
-				--Display timeline using these controls.
-				local numAttackHits = currentRow:GetNamedChild("NumAttackHits")
-				local attackCount = numAttackHits:GetNamedChild("Count")
-				if rowData.wasKillingBlow == false then
-					numAttackHits:SetHidden(false)
-					if rowData.displayTimeMS ~= nil then 
-						attackCount:SetHidden(false)
-						attackCount:SetText("-"..tostring(zo_roundToNearest(rowData.displayTimeMS/1000, .01)).."s")
-					else
-						attackCount:SetHidden(true)
-					end
-					numAttackHits:GetNamedChild("HitIcon"):SetHidden(true)
-					numAttackHits:GetNamedChild("KillIcon"):SetHidden(true)
+				if rowData ~= nil then
+
+					local currentRow = ZO_DeathRecapScrollContainerScrollChildAttacks:GetNamedChild(tostring(i))
 					
-					numAttackHits:ClearAnchors()
-					numAttackHits:SetAnchor(RIGHT, attack_icon, LEFT, -15, -10)
-				end
-				
-				--HP display using new control.
-				local health_display = GetControl(currentRow:GetName().."Health")
-				if health_display == nil then
-					health_display = CreateControl(currentRow:GetName().."Health", currentRow, CT_LABEL)
-					health_display:SetHidden(false)
-					health_display:SetFont("ZoFontGamepad22")
-					health_display:SetColor(1, 0.25, 0.25, 1)
-					health_display:SetAnchor(TOPRIGHT, attackCount, BOTTOMRIGHT, 0, -2)
-				end
-				health_display:SetText("HP: "..ZO_CommaDelimitDecimalNumber(rowData.currentHealth).."/"..ZO_CommaDelimitDecimalNumber(rowData.currentMaxHealth))
-				if rowData.wasKillingBlow then health_display:SetHidden(true) end
-				
-				--Set damage and label
-				local damageLabel = currentRow:GetNamedChild("DamageLabel")
-				local damageText = currentRow:GetNamedChild("Damage")
-				if rowData.resultType == ACTION_RESULT_HEAL or
-					rowData.resultType == ACTION_RESULT_HOT_TICK or
-					rowData.resultType == ACTION_RESULT_HOT then
-						damageLabel:SetText("HEAL")
-						damageText:SetText(ZO_CommaDelimitNumber(rowData.attackDamage))
-						damageText:SetColor(0, 1, 0, 1)
-				elseif rowData.resultType == ACTION_RESULT_CRITICAL_HEAL or 
-						rowData.resultType == ACTION_RESULT_HOT_TICK_CRITICAL then
+					--Change icon texture
+					local attack_icon = currentRow:GetNamedChild("Icon")
+					attack_icon:SetTexture(rowData.attackIcon)
+					
+					
+					--Display timeline using these controls.
+					local numAttackHits = currentRow:GetNamedChild("NumAttackHits")
+					local attackCount = numAttackHits:GetNamedChild("Count")
+					if rowData.wasKillingBlow == false then
+						numAttackHits:SetHidden(false)
+						if rowData.displayTimeMS ~= nil then 
+							attackCount:SetHidden(false)
+							attackCount:SetText("-"..tostring(zo_roundToNearest(rowData.displayTimeMS/1000, .01)).."s")
+						else
+							attackCount:SetHidden(true)
+						end
+						numAttackHits:GetNamedChild("HitIcon"):SetHidden(true)
+						numAttackHits:GetNamedChild("KillIcon"):SetHidden(true)
+						
+						numAttackHits:ClearAnchors()
+						numAttackHits:SetAnchor(RIGHT, attack_icon, LEFT, -15, -10)
+					end
+					
+					--HP display using new control.
+					local health_display = GetControl(currentRow:GetName().."Health")
+					if health_display == nil then
+						health_display = CreateControl(currentRow:GetName().."Health", currentRow, CT_LABEL)
+						health_display:SetHidden(false)
+						health_display:SetFont("ZoFontGamepad22")
+						health_display:SetColor(1, 0.25, 0.25, 1)
+						health_display:SetAnchor(TOPRIGHT, attackCount, BOTTOMRIGHT, 0, -2)
+					end
+					health_display:SetText("HP: "..ZO_CommaDelimitDecimalNumber(rowData.currentHealth).."/"..ZO_CommaDelimitDecimalNumber(rowData.currentMaxHealth))
+					if rowData.wasKillingBlow then health_display:SetHidden(true) end
+					
+					--Set damage and label
+					local damageLabel = currentRow:GetNamedChild("DamageLabel")
+					local damageText = currentRow:GetNamedChild("Damage")
+					if rowData.resultType == ACTION_RESULT_HEAL or
+						rowData.resultType == ACTION_RESULT_HOT_TICK or
+						rowData.resultType == ACTION_RESULT_HOT then
 							damageLabel:SetText("HEAL")
-							damageText:SetText(ZO_CommaDelimitNumber(rowData.attackDamage).."!")
+							damageText:SetText(ZO_CommaDelimitNumber(rowData.attackDamage))
 							damageText:SetColor(0, 1, 0, 1)
-				elseif rowData.resultType == ACTION_RESULT_ABSORBED then
-					damageLabel:SetText("ABSORB")
-					damageText:SetText(ZO_CommaDelimitNumber(rowData.attackDamage))
-					damageText:SetColor(0, 0, 1, 1)
-				elseif rowData.resultType == ACTION_RESULT_HEAL_ABSORBED then
-					damageLabel:SetText("HEAL ABSORB")
-					damageText:SetText(ZO_CommaDelimitNumber(rowData.attackDamage)) 
-					damageText:SetColor(0, 1, 1, 1)
-				elseif rowData.resultType == ACTION_RESULT_DODGED or rowData.attackName == "Roll Dodge" then
-					damageLabel:SetText("DODGE")
-					damageText:SetText("")
-				elseif rowData.resultType == ACTION_RESULT_ROOTED then
-					damageLabel:SetText("ROOT")
-					damageText:SetText("")
-				elseif rowData.resultType == ACTION_RESULT_FEARED then
-					damageLabel:SetText("FEARED")
-					damageText:SetText("")
-				elseif rowData.resultType == ACTION_RESULT_REFLECTED then
-					damageLabel:SetText("REFLECT")
-					damageText:SetText("")
-				elseif rowData.resultType == ACTION_RESULT_INTERRUPT then
-					damageLabel:SetText("INTERRUPT")
-					damageText:SetText("")
-				elseif rowData.resultType == ACTION_RESULT_SILENCED then
-					damageLabel:SetText("SILENCED")
-					damageText:SetText("")
-				elseif rowData.resultType == ACTION_RESULT_SNARED then
-					damageLabel:SetText("SNARED")
-					damageText:SetText("")
-				elseif rowData.resultType == ACTION_RESULT_STUNNED then
-					damageLabel:SetText("STUNNED")
-					damageText:SetText("")
-				elseif rowData.attackName == "Break Free" then
-					damageLabel:SetText("BREAK FREE")
-					damageText:SetText("")
-				elseif rowData.resultType == ACTION_RESULT_DAMAGE_SHIELDED then
-					damageLabel:SetText("DMG")
-					damageText:SetText("("..ZO_CommaDelimitNumber((rowData.attackDamage + rowData.attackOverflow))..")" )
-					damageText:SetColor(1, 0, 0, 1)
-				elseif rowData.resultType == ACTION_RESULT_BLOCKED_DAMAGE then
-					damageLabel:SetText("DMG")
-					damageText:SetText(ZO_CommaDelimitNumber(rowData.attackDamage + rowData.attackOverflow).."*" )
-					damageText:SetColor(1, 0, 0, 1)
-				elseif rowData.resultType == ACTION_RESULT_DOT_TICK_CRITICAL or
-						rowData.resultType == ACTION_RESULT_CRITICAL_DAMAGE then
-							damageLabel:SetText("DMG")
-							damageText:SetText((rowData.attackDamage + rowData.attackOverflow).."!")
-							damageText:SetColor(1, 0, 0, 1)
-				else --regular damage.
-					damageLabel:SetText("DMG")
-					damageText:SetText((rowData.attackDamage + rowData.attackOverflow))
-					damageText:SetColor(1, 0, 0, 1)
+					elseif rowData.resultType == ACTION_RESULT_CRITICAL_HEAL or 
+							rowData.resultType == ACTION_RESULT_HOT_TICK_CRITICAL then
+								damageLabel:SetText("HEAL")
+								damageText:SetText(ZO_CommaDelimitNumber(rowData.attackDamage).."!")
+								damageText:SetColor(0, 1, 0, 1)
+					elseif rowData.resultType == ACTION_RESULT_ABSORBED then
+						damageLabel:SetText("ABSORB")
+						damageText:SetText(ZO_CommaDelimitNumber(rowData.attackDamage))
+						damageText:SetColor(0, 0, 1, 1)
+					elseif rowData.resultType == ACTION_RESULT_HEAL_ABSORBED then
+						damageLabel:SetText("HEAL ABSORB")
+						damageText:SetText(ZO_CommaDelimitNumber(rowData.attackDamage)) 
+						damageText:SetColor(0, 1, 1, 1)
+					elseif rowData.resultType == ACTION_RESULT_DODGED or rowData.attackName == "Roll Dodge" then
+						damageLabel:SetText("DODGE")
+						damageText:SetText("")
+					elseif rowData.resultType == ACTION_RESULT_ROOTED then
+						damageLabel:SetText("ROOT")
+						damageText:SetText("")
+					elseif rowData.resultType == ACTION_RESULT_FEARED then
+						damageLabel:SetText("FEARED")
+						damageText:SetText("")
+					elseif rowData.resultType == ACTION_RESULT_REFLECTED then
+						damageLabel:SetText("REFLECT")
+						damageText:SetText("")
+					elseif rowData.resultType == ACTION_RESULT_INTERRUPT then
+						damageLabel:SetText("INTERRUPT")
+						damageText:SetText("")
+					elseif rowData.resultType == ACTION_RESULT_SILENCED then
+						damageLabel:SetText("SILENCED")
+						damageText:SetText("")
+					elseif rowData.resultType == ACTION_RESULT_SNARED then
+						damageLabel:SetText("SNARED")
+						damageText:SetText("")
+					elseif rowData.resultType == ACTION_RESULT_STUNNED then
+						damageLabel:SetText("STUNNED")
+						damageText:SetText("")
+					elseif rowData.attackName == "Break Free" then
+						damageLabel:SetText("BREAK FREE")
+						damageText:SetText("")
+					elseif rowData.resultType == ACTION_RESULT_DAMAGE_SHIELDED then
+						damageLabel:SetText("DMG")
+						damageText:SetText("("..ZO_CommaDelimitNumber((rowData.attackDamage + rowData.attackOverflow))..")" )
+						damageText:SetColor(1, 0, 0, 1)
+					elseif rowData.resultType == ACTION_RESULT_BLOCKED_DAMAGE then
+						damageLabel:SetText("DMG")
+						damageText:SetText(ZO_CommaDelimitNumber(rowData.attackDamage + rowData.attackOverflow).."*" )
+						damageText:SetColor(1, 0, 0, 1)
+					elseif rowData.resultType == ACTION_RESULT_DOT_TICK_CRITICAL or
+							rowData.resultType == ACTION_RESULT_CRITICAL_DAMAGE then
+								damageLabel:SetText("DMG")
+								damageText:SetText((rowData.attackDamage + rowData.attackOverflow).."!")
+								damageText:SetColor(1, 0, 0, 1)
+					else --regular damage.
+						damageLabel:SetText("DMG")
+						damageText:SetText((rowData.attackDamage + rowData.attackOverflow))
+						damageText:SetColor(1, 0, 0, 1)
+					end
+					
+					local attackerName = currentRow:GetNamedChild("AttackText"):GetNamedChild("AttackerName")
+					local attackName = currentRow:GetNamedChild("AttackText"):GetNamedChild("AttackName")
+					
+					attackName:ClearAnchors()
+					attackName:SetAnchor(TOPLEFT, attackerName, BOTTOMLEFT, 0, 2)
+					attackName:SetAnchor(TOPRIGHT, attackerName, BOTTOMRIGHT, 0, 2)
+					attackName:SetText(rowData.attackName)
+					attackerName:SetHidden(false)
+					attackerName:SetText(rowData.attackerName)
 				end
-				
-				local attackerName = currentRow:GetNamedChild("AttackText"):GetNamedChild("AttackerName")
-				local attackName = currentRow:GetNamedChild("AttackText"):GetNamedChild("AttackName")
-				
-				attackName:ClearAnchors()
-				attackName:SetAnchor(TOPLEFT, attackerName, BOTTOMLEFT, 0, 2)
-				attackName:SetAnchor(TOPRIGHT, attackerName, BOTTOMRIGHT, 0, 2)
-				attackName:SetText(rowData.attackName)
-				attackerName:SetHidden(false)
-				attackerName:SetText(rowData.attackerName)
-				
-				--avoid the need to wait for animations.
-				attack_icon:SetAlpha(1)
-				attack_icon:SetScale(1)
-				attack_icon:SetHidden(false)
-				currentRow:GetNamedChild("Text"):SetAlpha(1)
-				currentRow:GetNamedChild("Text"):SetHidden(false)
-				
-				
+					--avoid the need to wait for animations.
+					attack_icon:SetAlpha(1)
+					attack_icon:SetScale(1)
+					attack_icon:SetHidden(false)
+					currentRow:GetNamedChild("Text"):SetAlpha(1)
+					currentRow:GetNamedChild("Text"):SetHidden(false)
 			end
 			
 			
