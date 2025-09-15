@@ -11,8 +11,7 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 	if string.find(string.lower(abilityName), "break free") ~= nil and sourceType ~= COMBAT_UNIT_TYPE_PLAYER then return end
 	
 	local attack_icon = GetAbilityIcon(abilityID)
-	if attack_icon == "/esoui/art/icons/icon_missing.dds" or attack_icon == nil then return end
-
+	
 	local health, maxHealth = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_HEALTH)
 	
 	--track skills that cost health.
@@ -181,7 +180,7 @@ function ADR.Initialize()
 		zo_callLater(function()
 			local finalizedAttackList = ADR.GetOrderedList()
 			
-			--update display times
+			--Update display times
 			for k, v in ipairs(finalizedAttackList) do
 				v.displayTimeMS = finalizedAttackList[#finalizedAttackList].lastUpdateAgoMS - v.lastUpdateAgoMS
 			end
@@ -287,11 +286,11 @@ function ADR.Initialize()
 				elseif rowData.resultType == ACTION_RESULT_DOT_TICK_CRITICAL or
 						rowData.resultType == ACTION_RESULT_CRITICAL_DAMAGE then
 							damageLabel:SetText("DMG")
-							damageText:SetText((rowData.attackDamage + rowData.attackOverflow).."!")
+							damageText:SetText(ZO_CommaDelimitNumber(rowData.attackDamage + rowData.attackOverflow).."!")
 							damageText:SetColor(1, 0, 0, 1)
 				else --regular damage.
 					damageLabel:SetText("DMG")
-					damageText:SetText((rowData.attackDamage + rowData.attackOverflow))
+					damageText:SetText(ZO_CommaDelimitNumber(rowData.attackDamage + rowData.attackOverflow))
 					damageText:SetColor(1, 0, 0, 1)
 				end
 				

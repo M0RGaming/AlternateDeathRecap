@@ -69,7 +69,7 @@ function ADR.GetOrderedList()
 	for i = 1, ADR.attackList.size do
 		returnedList[returnedListIndex] = ADR.attackList.data[currentQueueIndex]
 		returnedListIndex = returnedListIndex + 1
-		currentQueueIndex = (currentQueueIndex%ADR.attackList.size) + 1
+		currentQueueIndex = (currentQueueIndex%ADR.attackList.maxAttacks) + 1
 	end
 	
 	return returnedList
