@@ -304,13 +304,13 @@ function ADR.Initialize()
 				attackerName:SetHidden(false)
 				attackerName:SetText(rowData.attackerName)
 				
-					--avoid the need to wait for animations.
-					attack_icon:SetAlpha(1)
-					attack_icon:SetScale(1)
-					attack_icon:SetHidden(false)
-					currentRow:GetNamedChild("Text"):SetAlpha(1)
-					currentRow:GetNamedChild("Text"):SetHidden(false)
-				end
+				--avoid the need to wait for animations.
+				attack_icon:SetAlpha(1)
+				attack_icon:SetScale(1)
+				attack_icon:SetHidden(false)
+				currentRow:GetNamedChild("Text"):SetAlpha(1)
+				currentRow:GetNamedChild("Text"):SetHidden(false)
+			
 			end
 			
 			
