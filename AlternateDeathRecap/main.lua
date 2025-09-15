@@ -187,12 +187,12 @@ function ADR.Initialize()
 		
 			for i = 1, #finalizedAttackList do
 				local rowData = finalizedAttackList[i]
-				
-				local currentRow = ZO_DeathRecapScrollContainerScrollChildAttacks:GetNamedChild(tostring(i))
-				
-				--Change icon texture
-				local attack_icon = currentRow:GetNamedChild("Icon")
-				if rowData.attackIcon ~= nil then
+				if rowData ~= nil then
+
+					local currentRow = ZO_DeathRecapScrollContainerScrollChildAttacks:GetNamedChild(tostring(i))
+					
+					--Change icon texture
+					local attack_icon = currentRow:GetNamedChild("Icon")
 					attack_icon:SetTexture(rowData.attackIcon)
 				end
 				
@@ -286,11 +286,11 @@ function ADR.Initialize()
 				elseif rowData.resultType == ACTION_RESULT_DOT_TICK_CRITICAL or
 						rowData.resultType == ACTION_RESULT_CRITICAL_DAMAGE then
 							damageLabel:SetText("DMG")
-							damageText:SetText(ZO_CommaDelimitNumber(rowData.attackDamage + rowData.attackOverflow).."!")
+							damageText:SetText((rowData.attackDamage + rowData.attackOverflow).."!")
 							damageText:SetColor(1, 0, 0, 1)
 				else --regular damage.
 					damageLabel:SetText("DMG")
-					damageText:SetText(ZO_CommaDelimitNumber(rowData.attackDamage + rowData.attackOverflow))
+					damageText:SetText((rowData.attackDamage + rowData.attackOverflow))
 					damageText:SetColor(1, 0, 0, 1)
 				end
 				
@@ -304,14 +304,13 @@ function ADR.Initialize()
 				attackerName:SetHidden(false)
 				attackerName:SetText(rowData.attackerName)
 				
-				--avoid the need to wait for animations.
-				attack_icon:SetAlpha(1)
-				attack_icon:SetScale(1)
-				attack_icon:SetHidden(false)
-				currentRow:GetNamedChild("Text"):SetAlpha(1)
-				currentRow:GetNamedChild("Text"):SetHidden(false)
-				
-				
+					--avoid the need to wait for animations.
+					attack_icon:SetAlpha(1)
+					attack_icon:SetScale(1)
+					attack_icon:SetHidden(false)
+					currentRow:GetNamedChild("Text"):SetAlpha(1)
+					currentRow:GetNamedChild("Text"):SetHidden(false)
+				end
 			end
 			
 			
