@@ -187,14 +187,12 @@ function ADR.Initialize()
 		
 			for i = 1, #finalizedAttackList do
 				local rowData = finalizedAttackList[i]
-				if rowData ~= nil then
 
-					local currentRow = ZO_DeathRecapScrollContainerScrollChildAttacks:GetNamedChild(tostring(i))
-					
-					--Change icon texture
-					local attack_icon = currentRow:GetNamedChild("Icon")
-					attack_icon:SetTexture(rowData.attackIcon)
-				end
+				local currentRow = ZO_DeathRecapScrollContainerScrollChildAttacks:GetNamedChild(tostring(i))
+				
+				--Change icon texture
+				local attack_icon = currentRow:GetNamedChild("Icon")
+				attack_icon:SetTexture(rowData.attackIcon)
 				
 				--Display timeline using these controls.
 				local numAttackHits = currentRow:GetNamedChild("NumAttackHits")
@@ -290,7 +288,7 @@ function ADR.Initialize()
 							damageText:SetColor(1, 0, 0, 1)
 				else --regular damage.
 					damageLabel:SetText("DMG")
-					damageText:SetText((rowData.attackDamage + rowData.attackOverflow))
+					damageText:SetText(ZO_CommaDelimitNumber(rowData.attackDamage + rowData.attackOverflow))
 					damageText:SetColor(1, 0, 0, 1)
 				end
 				
