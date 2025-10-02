@@ -99,15 +99,15 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 			ADR.EnqueueAttack(attackInfo)
 			
 	elseif result == ACTION_RESULT_ABSORBED  or 
-			result == ACTION_RESULT_HEAL_ABSORBED or 
-			result == ACTION_RESULT_DODGED or 
-			result == ACTION_RESULT_INTERRUPT or
+			(result == ACTION_RESULT_HEAL_ABSORBED and ADR.savedVariables.trackHealAbsorb) or 
+			(result == ACTION_RESULT_DODGED and ADR.savedVariables.trackDodged) or 
+			(result == ACTION_RESULT_INTERRUPT and ADR.savedVariables.trackInterrupted) or
 			result == ACTION_RESULT_REFLECTED or 
-			result == ACTION_RESULT_ROOTED or 
-			result == ACTION_RESULT_SILENCED or 
-			result == ACTION_RESULT_SNARED or 
-			result == ACTION_RESULT_STUNNED or 
-			result == ACTION_RESULT_FEARED then
+			(result == ACTION_RESULT_ROOTED and ADR.savedVariables.trackRooted) or 
+			(result == ACTION_RESULT_SILENCED and ADR.savedVariables.trackSilenced) or 
+			(result == ACTION_RESULT_SNARED and ADR.savedVariables.trackSnared) or 
+			(result == ACTION_RESULT_STUNNED and ADR.savedVariables.trackStunned) or 
+			(result == ACTION_RESULT_FEARED and ADR.savedVariables.trackFeared) then
 			
 		local attackInfo =
 		{
@@ -303,7 +303,14 @@ function ADR.Initialize()
 		timeLength = 10,
 		scrollSensitivityBoost = 0,
 		isCompact = false,
-		compactText = "", --Allow players to change compact text (similar to PDT).
+		trackHealAbsorb = true,
+		trackDodged = true,
+		trackInterrupted = true,
+		trackRooted = true,
+		trackSilenced = true,
+		trackSnared = true,
+		trackStunned = true,
+		trackFeared = true,
 	}
 	ADR.savedVariables = ZO_SavedVars:NewAccountWide("ADRSavedVariables", 1, nil, ADR.defaults, GetWorldName())
 
@@ -311,7 +318,21 @@ function ADR.Initialize()
 	local settings = LibHarvensAddonSettings:AddAddon("Alternate Death Recap")
 
 	local generalSection = {type = LibHarvensAddonSettings.ST_SECTION,label = "General",}
-	local compactSection = {type = LibHarvensAddonSettings.ST_SECTION,label = "Compact",}
+	local filterSection = {type = LibHarvensAddonSettings.ST_SECTION,label = "Filters",}
+
+	local toggleCompact = {
+        type = LibHarvensAddonSettings.ST_CHECKBOX, --setting type
+        label = "Compact Mode", 
+        tooltip = "Replaces the default death recap format with a more compact, customizable version.",
+        default = ADR.defaults.isCompact,
+        setFunction = function(state) 
+            ADR.savedVariables.isCompact = state
+        end,
+        getFunction = function() 
+            return ADR.savedVariables.isCompact
+        end,
+        disable = function() return false end,
+    }
 
 	local setMaxAttacks = {
         type = LibHarvensAddonSettings.ST_SLIDER,
@@ -374,35 +395,119 @@ function ADR.Initialize()
         disable = function() return false end,
     }
 
-	local toggleCompact = {
+	local trackHealAbsorb = {
         type = LibHarvensAddonSettings.ST_CHECKBOX, --setting type
-        label = "Compact Mode", 
-        tooltip = "Replaces the default death recap format with a more compact, customizable version.",
-        default = ADR.defaults.isCompact,
+        label = "Heal Absorb", 
+        tooltip = "Only show this event in recap when this option is set to ON.",
+        default = ADR.defaults.trackHealAbsorb,
         setFunction = function(state) 
-            ADR.savedVariables.isCompact = state
+            ADR.savedVariables.trackHealAbsorb = state
         end,
         getFunction = function() 
-            return ADR.savedVariables.isCompact
+            return ADR.savedVariables.trackHealAbsorb
         end,
         disable = function() return false end,
     }
 
-	local customText = {
-        type = LibHarvensAddonSettings.ST_EDIT,
-        label = "Compact Text Format",
-        tooltip = "This setting lets you modify the compact text.\nTODO",
-        default = ADR.defaults.compactText,
-        setFunction = function(value)
-            ADR.savedVariables.compactText = value
+	local trackDodged = {
+        type = LibHarvensAddonSettings.ST_CHECKBOX, --setting type
+        label = "Dodge", 
+        tooltip = "Only show this event in recap when this option is set to ON.",
+        default = ADR.defaults.trackDodged,
+        setFunction = function(state) 
+            ADR.savedVariables.trackDodged = state
         end,
-        getFunction = function()
-            return ADR.savedVariables.compactText
+        getFunction = function() 
+            return ADR.savedVariables.trackDodged
         end,
-        disable = function() return not ADR.savedVariables.isCompact end,
+        disable = function() return false end,
     }
 
-	settings:AddSettings({generalSection, setMaxAttacks, setMaxTime, setSensitivity, compactSection, toggleCompact, customText})
+	local trackInterrupted = {
+        type = LibHarvensAddonSettings.ST_CHECKBOX, --setting type
+        label = "Interrupted", 
+        tooltip = "Only show this event in recap when this option is set to ON.",
+        default = ADR.defaults.trackInterrupted,
+        setFunction = function(state) 
+            ADR.savedVariables.trackInterrupted = state
+        end,
+        getFunction = function() 
+            return ADR.savedVariables.trackInterrupted
+        end,
+        disable = function() return false end,
+    }
+
+	local trackRooted = {
+        type = LibHarvensAddonSettings.ST_CHECKBOX, --setting type
+        label = "Rooted", 
+        tooltip = "Only show this event in recap when this option is set to ON.",
+        default = ADR.defaults.trackRooted,
+        setFunction = function(state) 
+            ADR.savedVariables.trackRooted = state
+        end,
+        getFunction = function() 
+            return ADR.savedVariables.trackRooted
+        end,
+        disable = function() return false end,
+    }
+
+	local trackSnared = {
+        type = LibHarvensAddonSettings.ST_CHECKBOX, --setting type
+        label = "Snared", 
+        tooltip = "Only show this event in recap when this option is set to ON.",
+        default = ADR.defaults.trackSnared,
+        setFunction = function(state) 
+            ADR.savedVariables.trackSnared = state
+        end,
+        getFunction = function() 
+            return ADR.savedVariables.trackSnared
+        end,
+        disable = function() return false end,
+    }
+
+	local trackSilenced = {
+        type = LibHarvensAddonSettings.ST_CHECKBOX, --setting type
+        label = "Silenced", 
+        tooltip = "Only show this event in recap when this option is set to ON.",
+        default = ADR.defaults.trackSilenced,
+        setFunction = function(state) 
+            ADR.savedVariables.trackSilenced = state
+        end,
+        getFunction = function() 
+            return ADR.savedVariables.trackSilenced
+        end,
+        disable = function() return false end,
+    }
+
+	local trackStunned = {
+        type = LibHarvensAddonSettings.ST_CHECKBOX, --setting type
+        label = "Stunned", 
+        tooltip = "Only show this event in recap when this option is set to ON.",
+        default = ADR.defaults.trackStunned,
+        setFunction = function(state) 
+            ADR.savedVariables.trackStunned = state
+        end,
+        getFunction = function() 
+            return ADR.savedVariables.trackStunned
+        end,
+        disable = function() return false end,
+    }
+
+	local trackFeared = {
+        type = LibHarvensAddonSettings.ST_CHECKBOX, --setting type
+        label = "Feared", 
+        tooltip = "Only show this event in recap when this option is set to ON.",
+        default = ADR.defaults.trackFeared,
+        setFunction = function(state) 
+            ADR.savedVariables.trackFeared = state
+        end,
+        getFunction = function() 
+            return ADR.savedVariables.trackFeared
+        end,
+        disable = function() return false end,
+    }
+
+	settings:AddSettings({generalSection, toggleCompact, setMaxAttacks, setMaxTime, setSensitivity, filterSection, trackHealAbsorb, trackDodged, trackInterrupted, trackRooted, trackSnared, trackSilenced, trackStunned, trackFeared })
 
 	ADR.lastCastTimes = {}
 	GetNumKillingAttacks = function() 
