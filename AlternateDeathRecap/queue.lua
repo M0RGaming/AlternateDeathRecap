@@ -4,18 +4,15 @@ ADR.attackList = {
 	data = {},
 	front = 1,
 	back = 0,
-	maxAttacks = 25,
 	size = 0,
 }
-
-ADR.timeLength = 10
 
 function ADR.Reset()
 	ADR.attackList = {
 		data = {},
 		front = 1,
 		back = 0,
-		maxAttacks = 25,
+		maxAttacks = function() return ADR.savedVariables.maxAttacks end,
 		size = 0,
 	}
 end
@@ -26,23 +23,23 @@ function ADR.DequeueAttack()
 	local attack = ADR.attackList.data[ADR.attackList.front]
 	ADR.attackList.size = ADR.attackList.size - 1
 	ADR.attackList.data[ADR.attackList.front] = nil
-	ADR.attackList.front = (ADR.attackList.front%ADR.attackList.maxAttacks) + 1
+	ADR.attackList.front = (ADR.attackList.front%ADR.savedVariables.maxAttacks) + 1
 	
 	return attack
 end
 
 function ADR.EnqueueAttack(attack)
-	if ADR.attackList.size == ADR.attackList.maxAttacks then
+	while ADR.attackList.size >= ADR.savedVariables.maxAttacks do
 		ADR.DequeueAttack()
 	end
 	
 	ADR.attackList.size = ADR.attackList.size + 1
-	ADR.attackList.back = (ADR.attackList.back%ADR.attackList.maxAttacks) + 1
+	ADR.attackList.back = (ADR.attackList.back%ADR.savedVariables.maxAttacks) + 1
 	ADR.attackList.data[ADR.attackList.back] = attack
 	
 	--Check for oldest elements to be removed.
-	--I don't like checking this every time we add to the list, but hte other options cause issues with race conditions.
-	while ADR.Peek() ~= nil and (attack.lastUpdateAgoMS - ADR.Peek().lastUpdateAgoMS) > (ADR.timeLength * 1000) do
+	--I don't like checking this every time we add to the list, but the other options cause issues with race conditions.
+	while ADR.Peek() ~= nil and (attack.lastUpdateAgoMS - ADR.Peek().lastUpdateAgoMS) > (ADR.savedVariables.timeLength * 1000) do
 		ADR.DequeueAttack()
 	end
 end
@@ -69,7 +66,7 @@ function ADR.GetOrderedList()
 	for i = 1, ADR.attackList.size do
 		returnedList[returnedListIndex] = ADR.attackList.data[currentQueueIndex]
 		returnedListIndex = returnedListIndex + 1
-		currentQueueIndex = (currentQueueIndex%ADR.attackList.maxAttacks) + 1
+		currentQueueIndex = (currentQueueIndex%ADR.savedVariables.maxAttacks) + 1
 	end
 	
 	return returnedList

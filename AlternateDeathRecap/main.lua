@@ -9,6 +9,8 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 	if string.find(string.lower(abilityName), "revive") ~= nil then return end
 	--We only want to display this once, so only one type is being tracked with all other types returning here.
 	if string.find(string.lower(abilityName), "break free") ~= nil and sourceType ~= COMBAT_UNIT_TYPE_PLAYER then return end
+	--I don't know what this 0 damage attack is that I get from random bosses, but I don't want to see it.
+	if string.find(string.lower(abilityName), "vigilance") ~= nil then return end
 	
 	local attack_icon = GetAbilityIcon(abilityID)
 	
@@ -126,10 +128,290 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 	end
 end
 
-function ADR.Initialize()
-	
+function ADR.setupRecap()
+	--[[ZO_DeathRecapScrollContainerScrollChildAttacks																				Type: Control
+	--  ZO_DeathRecapScrollContainerScrollChildAttacks1																				Type:
+	--		($parent)Icon								ZO_DeathRecapScrollContainerScrollChildAttacks1Icon							Type:
+	--			($parent)Border							ZO_DeathRecapScrollContainerScrollChildAttacks1IconBorder					Type:
+	--				($parent) KeyboardFrame				ZO_DeathRecapScrollContainerScrollChildAttacks1IconBorderKeyboardFrame		Type:
+	--				($parent) GamepadFrame				ZO_DeathRecapScrollContainerScrollChildAttacks1IconBorderGamepadFrame		Type:
+	--			($parent)BossBorder						ZO_DeathRecapScrollContainerScrollChildAttacks1IconBossBorder				Type:
+	--				($parent) KeyboardFrame				ZO_DeathRecapScrollContainerScrollChildAttacks1IconBossBorderKeyboardFrame	Type:
+	--				($parent) GamepadFrame				ZO_DeathRecapScrollContainerScrollChildAttacks1IconBossBorderGamepadFrame	Type:
+	--		($parent)SkillStyle							ZO_DeathRecapScrollContainerScrollChildAttacks1SkillStyle					Type:
+	--			($parent)Icon							ZO_DeathRecapScrollContainerScrollChildAttacks1SkillStyleIcon				Type:
+	--		($parent)NumAttackHits						ZO_DeathRecapScrollContainerScrollChildAttacks1NumAttackHits				Type:
+	--			($parent)Count							ZO_DeathRecapScrollContainerScrollChildAttacks1NumAttackHitsCount			Type: Label
+	--			($parent)HitIcon						ZO_DeathRecapScrollContainerScrollChildAttacks1NumAttackHitsHitIcon			Type:
+	--			($parent)KillIcon						ZO_DeathRecapScrollContainerScrollChildAttacks1NumAttackHitsKillIcon		Type:
+	--		($parent)Text								ZO_DeathRecapScrollContainerScrollChildAttacks1Text							Type:
+	--			($grandparent)DamageLabel				ZO_DeathRecapScrollContainerScrollChildAttacks1DamageLabel					Type:
+	--			($grandparent)Damage					ZO_DeathRecapScrollContainerScrollChildAttacks1Damage						Type:
+	--			($grandparent)AttackText				ZO_DeathRecapScrollContainerScrollChildAttacks1AttackText					Type:
+	--				($parent) AttackerName				ZO_DeathRecapScrollContainerScrollChildAttacks1AttackTextAttackerName		Type:
+	--				($parent) AttackName				ZO_DeathRecapScrollContainerScrollChildAttacks1AttackTextAttackName			Type:]]
+
 	ADR.lastCastTimes = {}
-	GetNumKillingAttacks = function() return ADR.attackList.size end
+
+	--wait for the controls to be made before modifying them.
+	zo_callLater(function()
+		local finalizedAttackList = ADR.GetOrderedList()
+		
+		--Update display times
+		for k, v in ipairs(finalizedAttackList) do
+			v.displayTimeMS = finalizedAttackList[#finalizedAttackList].lastUpdateAgoMS - v.lastUpdateAgoMS
+		end
+	
+		for i = 1, #finalizedAttackList do
+			local rowData = finalizedAttackList[i]
+
+			local currentRow = ZO_DeathRecapScrollContainerScrollChildAttacks:GetNamedChild(tostring(i))
+			
+			--Change icon texture
+			local attack_icon = currentRow:GetNamedChild("Icon")
+			attack_icon:SetTexture(rowData.attackIcon)
+			
+			--Display timeline using these controls.
+			local numAttackHits = currentRow:GetNamedChild("NumAttackHits")
+			local attackCount = numAttackHits:GetNamedChild("Count")
+			if rowData.wasKillingBlow == false then
+				numAttackHits:SetHidden(false)
+				if rowData.displayTimeMS ~= nil then 
+					attackCount:SetHidden(false)
+					attackCount:SetText("-"..tostring(zo_roundToNearest(rowData.displayTimeMS/1000, .01)).."s")
+				else
+					attackCount:SetHidden(true)
+				end
+				numAttackHits:GetNamedChild("HitIcon"):SetHidden(true)
+				numAttackHits:GetNamedChild("KillIcon"):SetHidden(true)
+				
+				numAttackHits:ClearAnchors()
+				numAttackHits:SetAnchor(RIGHT, attack_icon, LEFT, -15, -10)
+			end
+			
+			--HP display using new control.
+			local health_display = GetControl(currentRow:GetName().."Health")
+			if health_display == nil then
+				health_display = CreateControl(currentRow:GetName().."Health", currentRow, CT_LABEL)
+				health_display:SetHidden(false)
+				health_display:SetFont("ZoFontGamepad22")
+				health_display:SetColor(1, 0.25, 0.25, 1)
+				health_display:SetAnchor(TOPRIGHT, attackCount, BOTTOMRIGHT, 0, -2)
+			end
+			health_display:SetText("HP: "..ZO_CommaDelimitDecimalNumber(rowData.currentHealth).."/"..ZO_CommaDelimitDecimalNumber(rowData.currentMaxHealth))
+			if rowData.wasKillingBlow then health_display:SetHidden(true) end
+			
+			--Set damage and label
+			local damageLabel = currentRow:GetNamedChild("DamageLabel")
+			local damageText = currentRow:GetNamedChild("Damage")
+			if rowData.resultType == ACTION_RESULT_HEAL or
+				rowData.resultType == ACTION_RESULT_HOT_TICK or
+				rowData.resultType == ACTION_RESULT_HOT then
+					damageLabel:SetText("HEAL")
+					damageText:SetText(ZO_CommaDelimitNumber(rowData.attackDamage))
+					damageText:SetColor(0, 1, 0, 1)
+			elseif rowData.resultType == ACTION_RESULT_CRITICAL_HEAL or 
+					rowData.resultType == ACTION_RESULT_HOT_TICK_CRITICAL then
+						damageLabel:SetText("HEAL")
+						damageText:SetText(ZO_CommaDelimitNumber(rowData.attackDamage).."!")
+						damageText:SetColor(0, 1, 0, 1)
+			elseif rowData.resultType == ACTION_RESULT_ABSORBED then
+				damageLabel:SetText("ABSORB")
+				damageText:SetText(ZO_CommaDelimitNumber(rowData.attackDamage))
+				damageText:SetColor(0, 0, 1, 1)
+			elseif rowData.resultType == ACTION_RESULT_HEAL_ABSORBED then
+				damageLabel:SetText("HEAL ABSORB")
+				damageText:SetText(ZO_CommaDelimitNumber(rowData.attackDamage)) 
+				damageText:SetColor(0, 1, 1, 1)
+			elseif rowData.resultType == ACTION_RESULT_DODGED or rowData.attackName == "Roll Dodge" then
+				damageLabel:SetText("DODGE")
+				damageText:SetText("")
+			elseif rowData.resultType == ACTION_RESULT_ROOTED then
+				damageLabel:SetText("ROOT")
+				damageText:SetText("")
+			elseif rowData.resultType == ACTION_RESULT_FEARED then
+				damageLabel:SetText("FEARED")
+				damageText:SetText("")
+			elseif rowData.resultType == ACTION_RESULT_REFLECTED then
+				damageLabel:SetText("REFLECT")
+				damageText:SetText("")
+			elseif rowData.resultType == ACTION_RESULT_INTERRUPT then
+				damageLabel:SetText("INTERRUPT")
+				damageText:SetText("")
+			elseif rowData.resultType == ACTION_RESULT_SILENCED then
+				damageLabel:SetText("SILENCED")
+				damageText:SetText("")
+			elseif rowData.resultType == ACTION_RESULT_SNARED then
+				damageLabel:SetText("SNARED")
+				damageText:SetText("")
+			elseif rowData.resultType == ACTION_RESULT_STUNNED then
+				damageLabel:SetText("STUNNED")
+				damageText:SetText("")
+			elseif rowData.attackName == "Break Free" then
+				damageLabel:SetText("BREAK FREE")
+				damageText:SetText("")
+			elseif rowData.resultType == ACTION_RESULT_DAMAGE_SHIELDED then
+				damageLabel:SetText("DMG")
+				damageText:SetText("("..ZO_CommaDelimitNumber((rowData.attackDamage + rowData.attackOverflow))..")" )
+				damageText:SetColor(1, 0, 0, 1)
+			elseif rowData.resultType == ACTION_RESULT_BLOCKED_DAMAGE then
+				damageLabel:SetText("DMG")
+				damageText:SetText(ZO_CommaDelimitNumber(rowData.attackDamage + rowData.attackOverflow).."*" )
+				damageText:SetColor(1, 0, 0, 1)
+			elseif rowData.resultType == ACTION_RESULT_DOT_TICK_CRITICAL or
+					rowData.resultType == ACTION_RESULT_CRITICAL_DAMAGE then
+						damageLabel:SetText("DMG")
+						damageText:SetText((rowData.attackDamage + rowData.attackOverflow).."!")
+						damageText:SetColor(1, 0, 0, 1)
+			else --regular damage.
+				damageLabel:SetText("DMG")
+				damageText:SetText(ZO_CommaDelimitNumber(rowData.attackDamage + rowData.attackOverflow))
+				damageText:SetColor(1, 0, 0, 1)
+			end
+			
+			local attackerName = currentRow:GetNamedChild("AttackText"):GetNamedChild("AttackerName")
+			local attackName = currentRow:GetNamedChild("AttackText"):GetNamedChild("AttackName")
+			
+			attackName:ClearAnchors()
+			attackName:SetAnchor(TOPLEFT, attackerName, BOTTOMLEFT, 0, 2)
+			attackName:SetAnchor(TOPRIGHT, attackerName, BOTTOMRIGHT, 0, 2)
+			attackName:SetText(rowData.attackName)
+			attackerName:SetHidden(false)
+			attackerName:SetText(rowData.attackerName)
+			
+			--avoid the need to wait for animations.
+			attack_icon:SetAlpha(1)
+			attack_icon:SetScale(1)
+			attack_icon:SetHidden(false)
+			currentRow:GetNamedChild("Text"):SetAlpha(1)
+			currentRow:GetNamedChild("Text"):SetHidden(false)
+		
+		end
+		
+		
+		--Force the animation to start playing to avoid some weird, inconsistent visual bugs.
+		DEATH:ToggleDeathRecap()
+		DEATH:ToggleDeathRecap()
+		
+	end, 2500)
+end
+
+function ADR.Initialize()
+
+	ADR.defaults = {
+		maxAttacks = 25,
+		timeLength = 10,
+		scrollSensitivityBoost = 0,
+		isCompact = false,
+		compactText = "", --Allow players to change compact text (similar to PDT).
+	}
+	ADR.savedVariables = ZO_SavedVars:NewAccountWide("ADRSavedVariables", 1, nil, ADR.defaults, GetWorldName())
+
+	--SETTINGS:
+	local settings = LibHarvensAddonSettings:AddAddon("Alternate Death Recap")
+
+	local generalSection = {type = LibHarvensAddonSettings.ST_SECTION,label = "General",}
+	local compactSection = {type = LibHarvensAddonSettings.ST_SECTION,label = "Compact",}
+
+	local setMaxAttacks = {
+        type = LibHarvensAddonSettings.ST_SLIDER,
+        label = "Max Attacks",
+        tooltip = "Set the limit on how many attacks this addon will keep track of.",
+        setFunction = function(value)
+			ADR.savedVariables.maxAttacks = value
+			
+			while ADR.attackList.size > ADR.savedVariables.maxAttacks do
+				ADR.DequeueAttack()
+			end
+		end,
+        getFunction = function()
+            return ADR.savedVariables.maxAttacks
+        end,
+        default = 25,
+        min = 1,
+        max = 50,
+        step = 1,
+        unit = "", --optional unit
+        format = "%d", --value format
+        disable = function() return false end,
+    }
+
+	local setMaxTime = {
+        type = LibHarvensAddonSettings.ST_SLIDER,
+        label = "Max Time",
+        tooltip = "The addon will only display attacks that occurred within the last X seconds.",
+        setFunction = function(value)
+			ADR.savedVariables.timeLength = value
+		end,
+        getFunction = function()
+            return ADR.savedVariables.timeLength
+        end,
+        default = 10,
+        min = 1,
+        max = 60,
+        step = 1,
+        unit = " sec", --optional unit
+        format = "%d", --value format
+        disable = function() return false end,
+    }
+
+	local setSensitivity = {
+        type = LibHarvensAddonSettings.ST_SLIDER,
+        label = "Scroll Boost",
+        tooltip = "Increases the death recap's scrolling speed by X%.",
+        setFunction = function(value)
+			ADR.savedVariables.scrollSensitivityBoost = value
+		end,
+        getFunction = function()
+            return ADR.savedVariables.scrollSensitivityBoost
+        end,
+        default = 0,
+        min = 0,
+        max = 1000,
+        step = 10,
+        unit = "%", --optional unit
+        format = "%d", --value format
+        disable = function() return false end,
+    }
+
+	local toggleCompact = {
+        type = LibHarvensAddonSettings.ST_CHECKBOX, --setting type
+        label = "Compact Mode", 
+        tooltip = "Replaces the default death recap format with a more compact, customizable version.",
+        default = ADR.defaults.isCompact,
+        setFunction = function(state) 
+            ADR.savedVariables.isCompact = state
+        end,
+        getFunction = function() 
+            return ADR.savedVariables.isCompact
+        end,
+        disable = function() return false end,
+    }
+
+	local customText = {
+        type = LibHarvensAddonSettings.ST_EDIT,
+        label = "Compact Text Format",
+        tooltip = "This setting lets you modify the compact text.\nTODO",
+        default = ADR.defaults.compactText,
+        setFunction = function(value)
+            ADR.savedVariables.compactText = value
+        end,
+        getFunction = function()
+            return ADR.savedVariables.compactText
+        end,
+        disable = function() return not ADR.savedVariables.isCompact end,
+    }
+
+	settings:AddSettings({generalSection, setMaxAttacks, setMaxTime, setSensitivity, compactSection, toggleCompact, customText})
+
+	ADR.lastCastTimes = {}
+	GetNumKillingAttacks = function() 
+		if ADR.savedVariables.isCompact == false then
+			return ADR.attackList.size
+		else
+			return 1
+		end
+	end
 	
 	ADR.healthCostSkills = {
 		["Equilibrium"] = true,
@@ -151,173 +433,8 @@ function ADR.Initialize()
 	SLASH_COMMANDS["/togglerecap"] = function()
 		ZO_DeathRecap:SetHidden(not ZO_DeathRecap:IsHidden())
 	end
-	
-  --[[ZO_DeathRecapScrollContainerScrollChildAttacks																				Type: Control
-	--  ZO_DeathRecapScrollContainerScrollChildAttacks1																				Type:
-	--		($parent)Icon								ZO_DeathRecapScrollContainerScrollChildAttacks1Icon							Type:
-	--			($parent)Border							ZO_DeathRecapScrollContainerScrollChildAttacks1IconBorder					Type:
-	--				($parent) KeyboardFrame				ZO_DeathRecapScrollContainerScrollChildAttacks1IconBorderKeyboardFrame		Type:
-	--				($parent) GamepadFrame				ZO_DeathRecapScrollContainerScrollChildAttacks1IconBorderGamepadFrame		Type:
-	--			($parent)BossBorder						ZO_DeathRecapScrollContainerScrollChildAttacks1IconBossBorder				Type:
-	--				($parent) KeyboardFrame				ZO_DeathRecapScrollContainerScrollChildAttacks1IconBossBorderKeyboardFrame	Type:
-	--				($parent) GamepadFrame				ZO_DeathRecapScrollContainerScrollChildAttacks1IconBossBorderGamepadFrame	Type:
-	--		($parent)SkillStyle							ZO_DeathRecapScrollContainerScrollChildAttacks1SkillStyle					Type:
-	--			($parent)Icon							ZO_DeathRecapScrollContainerScrollChildAttacks1SkillStyleIcon				Type:
-	--		($parent)NumAttackHits						ZO_DeathRecapScrollContainerScrollChildAttacks1NumAttackHits				Type:
-	--			($parent)Count							ZO_DeathRecapScrollContainerScrollChildAttacks1NumAttackHitsCount			Type: Label
-	--			($parent)HitIcon						ZO_DeathRecapScrollContainerScrollChildAttacks1NumAttackHitsHitIcon			Type:
-	--			($parent)KillIcon						ZO_DeathRecapScrollContainerScrollChildAttacks1NumAttackHitsKillIcon		Type:
-	--		($parent)Text								ZO_DeathRecapScrollContainerScrollChildAttacks1Text							Type:
-	--			($grandparent)DamageLabel				ZO_DeathRecapScrollContainerScrollChildAttacks1DamageLabel					Type:
-	--			($grandparent)Damage					ZO_DeathRecapScrollContainerScrollChildAttacks1Damage						Type:
-	--			($grandparent)AttackText				ZO_DeathRecapScrollContainerScrollChildAttacks1AttackText					Type:
-	--				($parent) AttackerName				ZO_DeathRecapScrollContainerScrollChildAttacks1AttackTextAttackerName		Type:
-	--				($parent) AttackName				ZO_DeathRecapScrollContainerScrollChildAttacks1AttackTextAttackName			Type:]]
-	EVENT_MANAGER:RegisterForEvent(ADR.name, EVENT_PLAYER_DEAD, function() 
-		ADR.lastCastTimes = {}
 
-		--wait for the controls to be made before modifying them.
-		zo_callLater(function()
-			local finalizedAttackList = ADR.GetOrderedList()
-			
-			--Update display times
-			for k, v in ipairs(finalizedAttackList) do
-				v.displayTimeMS = finalizedAttackList[#finalizedAttackList].lastUpdateAgoMS - v.lastUpdateAgoMS
-			end
-		
-			for i = 1, #finalizedAttackList do
-				local rowData = finalizedAttackList[i]
-
-				local currentRow = ZO_DeathRecapScrollContainerScrollChildAttacks:GetNamedChild(tostring(i))
-				
-				--Change icon texture
-				local attack_icon = currentRow:GetNamedChild("Icon")
-				attack_icon:SetTexture(rowData.attackIcon)
-				
-				--Display timeline using these controls.
-				local numAttackHits = currentRow:GetNamedChild("NumAttackHits")
-				local attackCount = numAttackHits:GetNamedChild("Count")
-				if rowData.wasKillingBlow == false then
-					numAttackHits:SetHidden(false)
-					if rowData.displayTimeMS ~= nil then 
-						attackCount:SetHidden(false)
-						attackCount:SetText("-"..tostring(zo_roundToNearest(rowData.displayTimeMS/1000, .01)).."s")
-					else
-						attackCount:SetHidden(true)
-					end
-					numAttackHits:GetNamedChild("HitIcon"):SetHidden(true)
-					numAttackHits:GetNamedChild("KillIcon"):SetHidden(true)
-					
-					numAttackHits:ClearAnchors()
-					numAttackHits:SetAnchor(RIGHT, attack_icon, LEFT, -15, -10)
-				end
-				
-				--HP display using new control.
-				local health_display = GetControl(currentRow:GetName().."Health")
-				if health_display == nil then
-					health_display = CreateControl(currentRow:GetName().."Health", currentRow, CT_LABEL)
-					health_display:SetHidden(false)
-					health_display:SetFont("ZoFontGamepad22")
-					health_display:SetColor(1, 0.25, 0.25, 1)
-					health_display:SetAnchor(TOPRIGHT, attackCount, BOTTOMRIGHT, 0, -2)
-				end
-				health_display:SetText("HP: "..ZO_CommaDelimitDecimalNumber(rowData.currentHealth).."/"..ZO_CommaDelimitDecimalNumber(rowData.currentMaxHealth))
-				if rowData.wasKillingBlow then health_display:SetHidden(true) end
-				
-				--Set damage and label
-				local damageLabel = currentRow:GetNamedChild("DamageLabel")
-				local damageText = currentRow:GetNamedChild("Damage")
-				if rowData.resultType == ACTION_RESULT_HEAL or
-					rowData.resultType == ACTION_RESULT_HOT_TICK or
-					rowData.resultType == ACTION_RESULT_HOT then
-						damageLabel:SetText("HEAL")
-						damageText:SetText(ZO_CommaDelimitNumber(rowData.attackDamage))
-						damageText:SetColor(0, 1, 0, 1)
-				elseif rowData.resultType == ACTION_RESULT_CRITICAL_HEAL or 
-						rowData.resultType == ACTION_RESULT_HOT_TICK_CRITICAL then
-							damageLabel:SetText("HEAL")
-							damageText:SetText(ZO_CommaDelimitNumber(rowData.attackDamage).."!")
-							damageText:SetColor(0, 1, 0, 1)
-				elseif rowData.resultType == ACTION_RESULT_ABSORBED then
-					damageLabel:SetText("ABSORB")
-					damageText:SetText(ZO_CommaDelimitNumber(rowData.attackDamage))
-					damageText:SetColor(0, 0, 1, 1)
-				elseif rowData.resultType == ACTION_RESULT_HEAL_ABSORBED then
-					damageLabel:SetText("HEAL ABSORB")
-					damageText:SetText(ZO_CommaDelimitNumber(rowData.attackDamage)) 
-					damageText:SetColor(0, 1, 1, 1)
-				elseif rowData.resultType == ACTION_RESULT_DODGED or rowData.attackName == "Roll Dodge" then
-					damageLabel:SetText("DODGE")
-					damageText:SetText("")
-				elseif rowData.resultType == ACTION_RESULT_ROOTED then
-					damageLabel:SetText("ROOT")
-					damageText:SetText("")
-				elseif rowData.resultType == ACTION_RESULT_FEARED then
-					damageLabel:SetText("FEARED")
-					damageText:SetText("")
-				elseif rowData.resultType == ACTION_RESULT_REFLECTED then
-					damageLabel:SetText("REFLECT")
-					damageText:SetText("")
-				elseif rowData.resultType == ACTION_RESULT_INTERRUPT then
-					damageLabel:SetText("INTERRUPT")
-					damageText:SetText("")
-				elseif rowData.resultType == ACTION_RESULT_SILENCED then
-					damageLabel:SetText("SILENCED")
-					damageText:SetText("")
-				elseif rowData.resultType == ACTION_RESULT_SNARED then
-					damageLabel:SetText("SNARED")
-					damageText:SetText("")
-				elseif rowData.resultType == ACTION_RESULT_STUNNED then
-					damageLabel:SetText("STUNNED")
-					damageText:SetText("")
-				elseif rowData.attackName == "Break Free" then
-					damageLabel:SetText("BREAK FREE")
-					damageText:SetText("")
-				elseif rowData.resultType == ACTION_RESULT_DAMAGE_SHIELDED then
-					damageLabel:SetText("DMG")
-					damageText:SetText("("..ZO_CommaDelimitNumber((rowData.attackDamage + rowData.attackOverflow))..")" )
-					damageText:SetColor(1, 0, 0, 1)
-				elseif rowData.resultType == ACTION_RESULT_BLOCKED_DAMAGE then
-					damageLabel:SetText("DMG")
-					damageText:SetText(ZO_CommaDelimitNumber(rowData.attackDamage + rowData.attackOverflow).."*" )
-					damageText:SetColor(1, 0, 0, 1)
-				elseif rowData.resultType == ACTION_RESULT_DOT_TICK_CRITICAL or
-						rowData.resultType == ACTION_RESULT_CRITICAL_DAMAGE then
-							damageLabel:SetText("DMG")
-							damageText:SetText((rowData.attackDamage + rowData.attackOverflow).."!")
-							damageText:SetColor(1, 0, 0, 1)
-				else --regular damage.
-					damageLabel:SetText("DMG")
-					damageText:SetText(ZO_CommaDelimitNumber(rowData.attackDamage + rowData.attackOverflow))
-					damageText:SetColor(1, 0, 0, 1)
-				end
-				
-				local attackerName = currentRow:GetNamedChild("AttackText"):GetNamedChild("AttackerName")
-				local attackName = currentRow:GetNamedChild("AttackText"):GetNamedChild("AttackName")
-				
-				attackName:ClearAnchors()
-				attackName:SetAnchor(TOPLEFT, attackerName, BOTTOMLEFT, 0, 2)
-				attackName:SetAnchor(TOPRIGHT, attackerName, BOTTOMRIGHT, 0, 2)
-				attackName:SetText(rowData.attackName)
-				attackerName:SetHidden(false)
-				attackerName:SetText(rowData.attackerName)
-				
-				--avoid the need to wait for animations.
-				attack_icon:SetAlpha(1)
-				attack_icon:SetScale(1)
-				attack_icon:SetHidden(false)
-				currentRow:GetNamedChild("Text"):SetAlpha(1)
-				currentRow:GetNamedChild("Text"):SetHidden(false)
-			
-			end
-			
-			
-			--Force the animation to start playing to avoid some weird, inconsistent visual bugs.
-			DEATH:ToggleDeathRecap()
-			DEATH:ToggleDeathRecap()
-			
-		end, 2500)
-	end)
+	EVENT_MANAGER:RegisterForEvent(ADR.name, EVENT_PLAYER_DEAD, ADR.setupRecap)
 	
 	--reset attack list on respawn.
 	EVENT_MANAGER:RegisterForEvent(ADR.name, EVENT_PLAYER_ALIVE, function() 
@@ -327,6 +444,13 @@ function ADR.Initialize()
 	
 	EVENT_MANAGER:RegisterForEvent(ADR.name, EVENT_COMBAT_EVENT, ADR.OnCombatEvent)
 	EVENT_MANAGER:AddFilterForEvent(ADR.name, EVENT_COMBAT_EVENT, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
+
+	ZO_PreHook("ZO_ScrollRelative", function(target, verticalDelta, secondCall)
+		--This is additional verticalDelta
+		if ADR.savedVariables.scrollSensitivityBoost ~= 0 and secondCall == nil and target:GetName() == "ZO_DeathRecapScrollContainer" then
+			ZO_ScrollRelative(target, (ADR.savedVariables.scrollSensitivityBoost*verticalDelta/100), true)
+		end
+	end)
 end
 	
 function ADR.OnAddOnLoaded(event, addonName)

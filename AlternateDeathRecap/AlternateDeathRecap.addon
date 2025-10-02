@@ -3,6 +3,8 @@
 ## APIVersion: 101047
 ## Version: 1.0.0
 ## IsLibrary: False
+## ConsoleDependsOn: LibHarvensAddonSettings>=20004
+## SavedVariables: ADRSavedVariables
 
 queue.lua
 main.lua
