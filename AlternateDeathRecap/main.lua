@@ -155,6 +155,9 @@ function ADR.setupRecap()
 
 	--wait for the controls to be made before modifying them.
 	zo_callLater(function()
+		--Skull icon.
+		ZO_DeathRecapScrollContainerScrollChildAttacksKillingBlowIcon:SetHidden(true)
+
 		--Hide preexisting compact text.
 		for i = 1, 50 do
 			local currentRow = ZO_DeathRecapScrollContainerScrollChildAttacks:GetNamedChild(tostring(i))
@@ -187,20 +190,19 @@ function ADR.setupRecap()
 				--Display timeline using these controls.
 				local numAttackHits = currentRow:GetNamedChild("NumAttackHits")
 				local attackCount = numAttackHits:GetNamedChild("Count")
-				if rowData.wasKillingBlow == false then
-					numAttackHits:SetHidden(false)
-					if rowData.displayTimeMS ~= nil then 
-						attackCount:SetHidden(false)
-						attackCount:SetText("-"..tostring(zo_roundToNearest(rowData.displayTimeMS/1000, .01)).."s")
-					else
-						attackCount:SetHidden(true)
-					end
-					numAttackHits:GetNamedChild("HitIcon"):SetHidden(true)
-					numAttackHits:GetNamedChild("KillIcon"):SetHidden(true)
-					
-					numAttackHits:ClearAnchors()
-					numAttackHits:SetAnchor(RIGHT, attack_icon, LEFT, -15, -10)
+
+				numAttackHits:SetHidden(false)
+				if rowData.displayTimeMS ~= nil then 
+					attackCount:SetHidden(false)
+					attackCount:SetText("-"..tostring(zo_roundToNearest(rowData.displayTimeMS/1000, .01)).."s")
+				else
+					attackCount:SetHidden(true)
 				end
+				numAttackHits:GetNamedChild("HitIcon"):SetHidden(true)
+				numAttackHits:GetNamedChild("KillIcon"):SetHidden(true)
+				
+				numAttackHits:ClearAnchors()
+				numAttackHits:SetAnchor(RIGHT, attack_icon, LEFT, -15, -10)
 				
 				--HP display using new control.
 				local health_display = GetControl(currentRow:GetName().."Health")
@@ -213,7 +215,6 @@ function ADR.setupRecap()
 				end
 				health_display:SetHidden(false)
 				health_display:SetText("HP: "..ZO_CommaDelimitDecimalNumber(rowData.currentHealth).."/"..ZO_CommaDelimitDecimalNumber(rowData.currentMaxHealth))
-				if rowData.wasKillingBlow then health_display:SetHidden(true) end
 				
 				--Set damage and label
 				local damageLabel = currentRow:GetNamedChild("DamageLabel")
@@ -304,7 +305,7 @@ function ADR.setupRecap()
 		
 			else
 				--Compact mode.
-				currentRow:SetDimensionConstraints(nil, nil, nil, 35)
+				currentRow:SetDimensionConstraints(nil, nil, nil, 30)
 
 				currentRow:GetNamedChild("Icon"):SetHidden(true)
 				currentRow:GetNamedChild("NumAttackHits"):SetHidden(true)
@@ -324,36 +325,36 @@ function ADR.setupRecap()
 
 					compactTextTimer = CreateControl(compactText:GetName().."Timer", compactText, CT_LABEL)
 					compactTextTimer:SetAnchor(TOPLEFT, compactText, TOPLEFT, 0, 0)
-					compactTextTimer:SetFont("ZoFontGamepad34")
+					compactTextTimer:SetFont("ZoFontGamepad27")
 
 					compactTextNumber = CreateControl(compactText:GetName().."Number", compactText, CT_LABEL)
 					compactTextNumber:SetAnchor(TOPLEFT, compactTextTimer, TOPRIGHT, 8, 0)
-					compactTextNumber:SetFont("ZoFontGamepad34")
+					compactTextNumber:SetFont("ZoFontGamepad27")
 
 					compactTextLabel = CreateControl(compactText:GetName().."Label", compactText, CT_LABEL)
 					compactTextLabel:SetAnchor(TOPLEFT, compactTextNumber, TOPRIGHT, 8, 0)
 					compactTextLabel:SetColor(197/255, 194/255, 158/255, 1)
-					compactTextLabel:SetFont("ZoFontGamepad34")
+					compactTextLabel:SetFont("ZoFontGamepad27")
 
 					compactText_by = CreateControl(compactText:GetName().."By", compactText, CT_LABEL)
 					compactText_by:SetAnchor(TOPLEFT, compactTextLabel, TOPRIGHT, 8, 0)
-					compactText_by:SetFont("ZoFontGamepad34")
+					compactText_by:SetFont("ZoFontGamepad27")
 					compactText_by:SetText("by")
 
 					compactTextAttack = CreateControl(compactText:GetName().."Attack", compactText, CT_LABEL)
 					compactTextAttack:SetAnchor(TOPLEFT, compactText_by, TOPRIGHT, 8, 0)
 					compactTextAttack:SetColor(197/255, 194/255, 158/255, 1)
-					compactTextAttack:SetFont("ZoFontGamepad34")
+					compactTextAttack:SetFont("ZoFontGamepad27")
 
 					compactText_from = CreateControl(compactText:GetName().."From", compactText, CT_LABEL)
 					compactText_from:SetAnchor(TOPLEFT, compactTextAttack, TOPRIGHT, 8, 0)
-					compactText_from:SetFont("ZoFontGamepad34")
+					compactText_from:SetFont("ZoFontGamepad27")
 					compactText_from:SetText("from")
 
 					compactTextAttacker = CreateControl(compactText:GetName().."Attacker", compactText, CT_LABEL)
 					compactTextAttacker:SetAnchor(TOPLEFT, compactText_from, TOPRIGHT, 8, 0)
 					compactTextAttacker:SetColor(197/255, 194/255, 158/255, 1)
-					compactTextAttacker:SetFont("ZoFontGamepad34")
+					compactTextAttacker:SetFont("ZoFontGamepad27")
 
 					compactTextHealth = CreateControl(compactText:GetName().."Health", compactText, CT_LABEL)
 					compactTextHealth:SetAnchor(LEFT, compactTextAttacker, RIGHT, 8, 0)
