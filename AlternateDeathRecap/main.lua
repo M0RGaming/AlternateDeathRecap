@@ -440,7 +440,7 @@ function ADR.setupRecap()
 
 				compactTextAttack:SetText(rowData.attackName)
 				compactTextAttacker:SetText(rowData.attackerName)
-				compactTextHealth:SetText("(HP: "..rowData.currentHealth..")")
+				compactTextHealth:SetText("(HP: "..ZO_CommaDelimitDecimalNumber(rowData.currentHealth)..")")
 			end
 		end
 		
