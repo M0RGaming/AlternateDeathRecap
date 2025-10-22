@@ -1,0 +1,57 @@
+<GuiXml>
+    <Animations>
+        <AnimationTimeline name="AlternativeDeathRecapAttackAnimation">
+            <Animations>
+                <AnimationTimeline>
+                    <Animations>
+                        <!-- Icon -->
+                        <AlphaAnimation duration="25" delay="41.5" startAlpha="0" endAlpha="1" />
+                        <ScaleAnimation duration="66.5" startScale="0" endScale="1.3" />
+                        <ScaleAnimation duration="100" delay="66.5" startScale="1.3" endScale="1" />
+
+                        <!-- Style Icon -->
+                        <AlphaAnimation duration="25" delay="41.5" startAlpha="0" endAlpha="1" />
+                        <ScaleAnimation duration="66.5" startScale="0" endScale="1.3" />
+                        <ScaleAnimation duration="100" delay="66.5" startScale="1.3" endScale="1" />
+
+                        <!-- Label -->
+                        <AlphaAnimation duration="125" delay="83" startAlpha="0" endAlpha="1" />
+
+                        <!-- Damage Over Time Count -->
+                        <AlphaAnimation duration="25" delay="41.5" startAlpha="0" endAlpha="1" />
+                        <ScaleAnimation duration="66.5" startScale="0" endScale="1.3" />
+                        <ScaleAnimation duration="100" delay="66.5" startScale="1.3" endScale="1" />
+
+                        <!-- Health Text -->
+                        <AlphaAnimation duration="25" delay="41.5" startAlpha="0" endAlpha="1" />
+                        <ScaleAnimation duration="66.5" startScale="0" endScale="1.3" />
+                        <ScaleAnimation duration="100" delay="66.5" startScale="1.3" endScale="1" />
+                    </Animations>
+                    <Callbacks>
+                        <Callback delay="41.5">
+                            if(self.isKillingBlow) then
+                                PlaySound(SOUNDS.DEATH_RECAP_KILLING_BLOW_SHOWN)
+                            else
+                                --PlaySound(SOUNDS.DEATH_RECAP_ATTACK_SHOWN)
+                            end
+                        </Callback>
+                    </Callbacks>
+                </AnimationTimeline>
+            </Animations>
+        </AnimationTimeline>
+    </Animations>
+    <Controls>
+
+        <Slider name="AlternativeScrollBarTemplate" hidden="true" mouseEnabled="true" inherits="ZO_VerticalScrollbarBase" virtual="true">
+            <Anchor point="TOPLEFT" relativeTo="$(parent)Contents" relativePoint="TOPRIGHT" offsetY="16" />
+            <Anchor point="BOTTOMLEFT" relativeTo="$(parent)Contents" relativePoint="BOTTOMRIGHT" offsetY="-16" />
+            <OnMouseWheel>
+                ZO_ScrollList_ScrollRelative(self:GetParent(), -delta * 40)
+            </OnMouseWheel>
+
+            <OnValueChanged>
+                ZO_ScrollList_MoveWindow(self:GetParent(), value)
+            </OnValueChanged>
+        </Slider>
+    </Controls>
+</GuiXml>
