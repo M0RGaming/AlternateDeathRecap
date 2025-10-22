@@ -496,38 +496,54 @@ local COUNT_ANIMATION_END_INDEX = 10
 local HEALTH_ANIMATION_START_INDEX = 11
 local HEALTH_ANIMATION_END_INDEX = 13
 
+-- Instead of SetCustomFactoryBehavior, override the main factory
+local originalFactory = DEATH_RECAP.attackPool.m_Factory
 
-DEATH_RECAP.attackPool:SetCustomFactoryBehavior(function(control)
-    control.timeline = ANIMATION_MANAGER:CreateTimelineFromVirtual("AlternativeDeathRecapAttackAnimation")
-    local nestedTimeline = control.timeline:GetAnimationTimeline(1)
-    local iconTexture = control:GetNamedChild("Icon")
-    local styleContainer = control:GetNamedChild("SkillStyle")
-    local textContainer = control:GetNamedChild("Text")
+DEATH_RECAP.attackPool:SetFactory(function(objectKey)
+    -- Create the control using original factory - PASS THE POOL!
+    local control = originalFactory(DEATH_RECAP.attackPool, objectKey)
+    
+    -- Only create timeline if control was created successfully
+    if control then
+        -- Create timeline ONLY for new objects
+        control.timeline = ANIMATION_MANAGER:CreateTimelineFromVirtual("AlternativeDeathRecapAttackAnimation")
+        if control.timeline then
+            local nestedTimeline = control.timeline:GetAnimationTimeline(1)
+            if nestedTimeline then
+                local iconTexture = control:GetNamedChild("Icon")
+                local styleContainer = control:GetNamedChild("SkillStyle")
+                local textContainer = control:GetNamedChild("Text")
 
-    for i = ICON_ANIMATION_START_INDEX, ICON_ANIMATION_END_INDEX do
-        local animation = nestedTimeline:GetAnimation(i)
-        animation:SetAnimatedControl(iconTexture)
-    end
-    for i = STYLE_ANIMATION_START_INDEX, STYLE_ANIMATION_END_INDEX do
-        local animation = nestedTimeline:GetAnimation(i)
-        animation:SetAnimatedControl(styleContainer)
-    end
-    nestedTimeline:GetAnimation(TEXT_ANIMATION_INDEX):SetAnimatedControl(textContainer)
-    if not nestedTimeline.isKillingBlow then
-        for i = COUNT_ANIMATION_START_INDEX, COUNT_ANIMATION_END_INDEX do
-            local numAttackHitsContainer = control:GetNamedChild("NumAttackHits")
-            local animation = nestedTimeline:GetAnimation(i)
-            animation:SetAnimatedControl(numAttackHitsContainer)
+                for i = ICON_ANIMATION_START_INDEX, ICON_ANIMATION_END_INDEX do
+                    local animation = nestedTimeline:GetAnimation(i)
+                    if animation then
+                        animation:SetAnimatedControl(iconTexture)
+                    end
+                end
+                for i = STYLE_ANIMATION_START_INDEX, STYLE_ANIMATION_END_INDEX do
+                    local animation = nestedTimeline:GetAnimation(i)
+                    if animation then
+                        animation:SetAnimatedControl(styleContainer)
+                    end
+                end
+                local textAnimation = nestedTimeline:GetAnimation(TEXT_ANIMATION_INDEX)
+                if textAnimation then
+                    textAnimation:SetAnimatedControl(textContainer)
+                end
+                if not nestedTimeline.isKillingBlow then
+                    local numAttackHitsContainer = control:GetNamedChild("NumAttackHits")
+                    for i = COUNT_ANIMATION_START_INDEX, COUNT_ANIMATION_END_INDEX do
+                        local animation = nestedTimeline:GetAnimation(i)
+                        if animation then
+                            animation:SetAnimatedControl(numAttackHitsContainer)
+                        end
+                    end
+                end
+            end
         end
     end
-
-    --[[
-    local health_display = control:GetNamedChild("Health")
-	for i = HEALTH_ANIMATION_START_INDEX, HEALTH_ANIMATION_END_INDEX do
-        local animation = nestedTimeline:GetAnimation(i)
-        animation:SetAnimatedControl(health_display)
-    end
-    --]]
+    
+    return control
 end)
 
 
@@ -630,11 +646,17 @@ local function SetupAttacks(self) -- https://github.com/esoui/esoui/blob/1453053
 			health_display:SetHidden(false)
 			health_display:SetText("HP: "..ZO_CommaDelimitDecimalNumber(rowData.currentHealth).."/"..ZO_CommaDelimitDecimalNumber(rowData.currentMaxHealth))
 			health_display:SetAlpha(startAlpha)
-			local nestedTimeline = currentRow.timeline:GetAnimationTimeline(1)
-			for i = HEALTH_ANIMATION_START_INDEX, HEALTH_ANIMATION_END_INDEX do
-		        local animation = nestedTimeline:GetAnimation(i)
-		        animation:SetAnimatedControl(health_display)
-		    end
+			if currentRow.timeline then
+				local nestedTimeline = currentRow.timeline:GetAnimationTimeline(1)
+				if nestedTimeline then
+					for i = HEALTH_ANIMATION_START_INDEX, HEALTH_ANIMATION_END_INDEX do
+				        local animation = nestedTimeline:GetAnimation(i)
+				        if animation then
+				        	animation:SetAnimatedControl(health_display)
+				        end
+				    end
+				end
+			end
 
 
 			
