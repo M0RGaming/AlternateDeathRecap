@@ -40,18 +40,4 @@
             </Animations>
         </AnimationTimeline>
     </Animations>
-    <Controls>
-
-        <Slider name="AlternativeScrollBarTemplate" hidden="true" mouseEnabled="true" inherits="ZO_VerticalScrollbarBase" virtual="true">
-            <Anchor point="TOPLEFT" relativeTo="$(parent)Contents" relativePoint="TOPRIGHT" offsetY="16" />
-            <Anchor point="BOTTOMLEFT" relativeTo="$(parent)Contents" relativePoint="BOTTOMRIGHT" offsetY="-16" />
-            <OnMouseWheel>
-                ZO_ScrollList_ScrollRelative(self:GetParent(), -delta * 40)
-            </OnMouseWheel>
-
-            <OnValueChanged>
-                ZO_ScrollList_MoveWindow(self:GetParent(), value)
-            </OnValueChanged>
-        </Slider>
-    </Controls>
 </GuiXml>

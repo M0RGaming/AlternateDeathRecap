@@ -152,8 +152,8 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 			end
 	end
 	ADR.EnqueueAttack(attackInfo)
-	ADR.EnqueueAttack(attackInfo)
-	ADR.EnqueueAttack(attackInfo) -- TODO REMOVE THESE EXTRAS
+	--ADR.EnqueueAttack(attackInfo)
+	--ADR.EnqueueAttack(attackInfo) -- TODO REMOVE THESE EXTRAS
 end
 --[[
 function ADR.setupRecap()
@@ -546,7 +546,7 @@ DEATH_RECAP.attackPool:SetFactory(function(objectKey)
     return control
 end)
 
-
+DEATH_RECAP.attackPool:SetCustomFactoryBehavior(function() end)
 
 
 
@@ -714,7 +714,7 @@ local function SetupAttacks(self) -- https://github.com/esoui/esoui/blob/1453053
 				damageText:SetText("("..ZO_CommaDelimitNumber((rowData.attackDamage + rowData.attackOverflow))..")" )
 				damageText:SetColor(1, 0, 0, 1)
 			elseif rowData.resultType == ACTION_RESULT_BLOCKED_DAMAGE then
-				damageLabel:SetText("DMG")
+				damageLabel:SetText("BLOCKED")
 				damageText:SetText(ZO_CommaDelimitNumber(rowData.attackDamage + rowData.attackOverflow).."*" )
 				damageText:SetColor(1, 0, 0, 1)
 			elseif rowData.resultType == ACTION_RESULT_DOT_TICK_CRITICAL or
