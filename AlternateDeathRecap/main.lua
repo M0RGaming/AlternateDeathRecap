@@ -763,7 +763,7 @@ function ADR.Initialize()
 	    local setAnimationSpeed = {
 	        type = LibHarvensAddonSettings.ST_SLIDER,
 	        label = "Animation Length",
-	        tooltip = "Set the length of each attack animation in the death recap.",
+	        tooltip = "Set the length of each attack animation in the death recap. This will only take affect after a reload of your UI.",
 	        setFunction = function(value)
 				ADR.savedVariables.animationSpeed = value
 			end,
