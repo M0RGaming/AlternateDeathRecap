@@ -231,7 +231,7 @@ function ADR.prefetchControls() -- prefetch maxAttacks amount of controls, to av
 		--prefetch
 		--d("Checking object at index "..currentIndex)
 		if DEATH_RECAP.attackPool:GetActiveObject(currentIndex) == nil then -- if the object is already active, dont try to mess with it.
-			d("Making object "..tostring(currentIndex))
+			--d("Making object "..tostring(currentIndex))
 			DEATH_RECAP.attackPool:AcquireObject(currentIndex)
 			DEATH_RECAP.attackPool:ReleaseObject(currentIndex)
 			currentIndex = currentIndex + 1
