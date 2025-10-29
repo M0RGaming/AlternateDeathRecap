@@ -38,6 +38,7 @@ local allowedResults = {
 
 
 local lastResult = 0
+local shieldCount = 0
 function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, _log, sourceUnitID, targetUnitID, abilityID, overflow)
 	
 	--a[#a+1] = {eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, _log, sourceUnitID, targetUnitID, abilityID, overflow}
@@ -54,26 +55,39 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 	
 
 	if lastResult == ACTION_RESULT_DAMAGE_SHIELDED then -- next attack will be the thing which causes the sheild to take damage
+		if result == ACTION_RESULT_DAMAGE_SHIELDED then
+			shieldCount = shieldCount + 1
+		end
 		if ADR.attackList.size ~= 0 then
-			--[[
-			attackInfo = {
-				resultType = result,
-				attackName = abilityName,
-				attackDamage = hitValue,
-				attackOverflow = overflow,
-				attackIcon = attack_icon,
-				wasKillingBlow = false,
-				lastUpdateAgoMS = GetGameTimeMilliseconds(),
-				displayTimeMS = nil,
-				attackerName = sourceName,
-				currentHealth = health,
-				currentMaxHealth = maxHealth,
-			}
-			--]]
-			local attackData = ADR.attackList.data[ADR.attackList.back]
-			attackData.attackName = string.format("%s (%s)", abilityName, attackData.attackName)
-			lastResult = 0
-			if hitValue == 0 then return end
+			for i=0,shieldCount do
+				--[[
+				attackInfo = {
+					resultType = result,
+					attackName = abilityName,
+					attackDamage = hitValue,
+					attackOverflow = overflow,
+					attackIcon = attack_icon,
+					wasKillingBlow = false,
+					lastUpdateAgoMS = GetGameTimeMilliseconds(),
+					displayTimeMS = nil,
+					attackerName = sourceName,
+					currentHealth = health,
+					currentMaxHealth = maxHealth,
+				}
+				--]]
+				local attackData = ADR.attackList.data[ADR.attackList.back-i]
+				if (attackData) and (attackData.resultType == ACTION_RESULT_DAMAGE_SHIELDED) then
+					attackData.attackName = string.format("%s (%s)", abilityName, attackData.attackName)
+					lastResult = 0
+					if hitValue == 0 then return end
+				else
+					lastResult = 0
+					shieldCount = 0
+					if hitValue == 0 then return end
+					break
+				end
+				shieldCount = 0
+			end
 		end
 	end
 
@@ -484,8 +498,6 @@ end
 
 
 
-
-
 local ICON_ANIMATION_START_INDEX = 1
 local ICON_ANIMATION_END_INDEX = 3
 local STYLE_ANIMATION_START_INDEX = 4
@@ -550,6 +562,36 @@ DEATH_RECAP.attackPool:SetCustomFactoryBehavior(function() end)
 
 
 
+local prefetchingControls = true
+
+
+local currentIndex = 1
+function ADR.prefetchControls() -- prefetch maxAttacks amount of controls, to avoid stutters when loading all maxAttacks number of controls at first death.
+	if (prefetchingControls == true) and (currentIndex > ADR.savedVariables.maxAttacks) then
+		--prefetch
+		if DEATH_RECAP.attackPool:GetActiveObject(currentIndex) == nil then -- if the object is already active, dont try to mess with it.
+			DEATH_RECAP.attackPool:AcquireObject(currentIndex)
+			DEATH_RECAP.attackPool:ReleaseObject(currentIndex)
+			currentIndex = currentIndex + 1
+			return
+		end
+	end
+	-- unregister
+	prefetchingControls = false
+	EVENT_MANAGER:UnregisterForUpdate(string.format("%s Prefetching", ADR.name))
+end
+
+
+local function registerPrefetch() -- run on playeractivated
+	EVENT_MANAGER:RegisterForUpdate(string.format("%s Prefetching", ADR.name), 2000, prefetchingControls)
+	EVENT_MANAGER:UnregisterForEvent(string.format("%s Start Prefetching", ADR.name), EVENT_PLAYER_ACTIVATED)
+end
+
+EVENT_MANAGER:RegisterForEvent(string.format("%s Start Prefetching", ADR.name), EVENT_PLAYER_ACTIVATED, registerPrefetch)
+
+
+
+
 
 
 
@@ -579,17 +621,11 @@ local function SetupAttacks(self) -- https://github.com/esoui/esoui/blob/1453053
     self.attackPool:ReleaseAllObjects()
     self.killingBlowIcon:SetAlpha(startAlpha)
 
+    prefetchingControls = false
 
     ADR.lastCastTimes = {}
     local attacks = ADR.GetOrderedList()
 
-    -- TODO: REMOVE THIS
-    --[[
-    for i,v in ipairs(attacks) do
-    	attacks[i+#attacks] = v
-    end
-    --]]
-    
 
     for k, v in ipairs(attacks) do
 		v.displayTimeMS = attacks[#attacks].lastUpdateAgoMS - v.lastUpdateAgoMS
@@ -752,6 +788,149 @@ local function SetupAttacks(self) -- https://github.com/esoui/esoui/blob/1453053
 			currentRow:GetNamedChild("Icon"):SetHidden(false)
 			currentRow:GetNamedChild("NumAttackHits"):SetHidden(false)
 			--]]
+		else
+			--Compact mode.
+			currentRow:SetDimensionConstraints(nil, nil, nil, 30)
+
+			currentRow:GetNamedChild("Icon"):SetHidden(true)
+			currentRow:GetNamedChild("NumAttackHits"):SetHidden(true)
+			currentRow:GetNamedChild("Text"):SetHidden(true)
+
+			local health_display = GetControl(currentRow:GetName().."Health")
+			if health_display ~= nil then
+				health_display:SetHidden(true)
+			end
+
+			local compactText = GetControl(currentRow:GetName().."Compact")
+			local compactTextTimer, compactTextNumber, compactTextLabel, compactText_by, compactTextAttack, compactText_from, compactTextAttacker, compactTextHealth
+			if compactText == nil then
+				compactText = CreateControl(currentRow:GetName().."Compact", currentRow, CT_CONTROL)
+				compactText:SetHidden(false)
+				compactText:SetAnchor(TOPLEFT, currentRow, TOPLEFT, -10, 0)
+
+				compactTextTimer = CreateControl(compactText:GetName().."Timer", compactText, CT_LABEL)
+				compactTextTimer:SetAnchor(TOPLEFT, compactText, TOPLEFT, 0, 0)
+				compactTextTimer:SetFont("ZoFontGamepad27")
+
+				compactTextNumber = CreateControl(compactText:GetName().."Number", compactText, CT_LABEL)
+				compactTextNumber:SetAnchor(TOPLEFT, compactTextTimer, TOPRIGHT, 8, 0)
+				compactTextNumber:SetFont("ZoFontGamepad27")
+
+				compactTextLabel = CreateControl(compactText:GetName().."Label", compactText, CT_LABEL)
+				compactTextLabel:SetAnchor(TOPLEFT, compactTextNumber, TOPRIGHT, 8, 0)
+				compactTextLabel:SetColor(197/255, 194/255, 158/255, 1)
+				compactTextLabel:SetFont("ZoFontGamepad27")
+
+				compactText_by = CreateControl(compactText:GetName().."By", compactText, CT_LABEL)
+				compactText_by:SetAnchor(TOPLEFT, compactTextLabel, TOPRIGHT, 8, 0)
+				compactText_by:SetFont("ZoFontGamepad27")
+				compactText_by:SetText("by")
+
+				compactTextAttack = CreateControl(compactText:GetName().."Attack", compactText, CT_LABEL)
+				compactTextAttack:SetAnchor(TOPLEFT, compactText_by, TOPRIGHT, 8, 0)
+				compactTextAttack:SetColor(197/255, 194/255, 158/255, 1)
+				compactTextAttack:SetFont("ZoFontGamepad27")
+
+				compactText_from = CreateControl(compactText:GetName().."From", compactText, CT_LABEL)
+				compactText_from:SetAnchor(TOPLEFT, compactTextAttack, TOPRIGHT, 8, 0)
+				compactText_from:SetFont("ZoFontGamepad27")
+				compactText_from:SetText("from")
+
+				compactTextAttacker = CreateControl(compactText:GetName().."Attacker", compactText, CT_LABEL)
+				compactTextAttacker:SetAnchor(TOPLEFT, compactText_from, TOPRIGHT, 8, 0)
+				compactTextAttacker:SetColor(197/255, 194/255, 158/255, 1)
+				compactTextAttacker:SetFont("ZoFontGamepad27")
+
+				compactTextHealth = CreateControl(compactText:GetName().."Health", compactText, CT_LABEL)
+				compactTextHealth:SetAnchor(LEFT, compactTextAttacker, RIGHT, 8, 0)
+				compactTextHealth:SetColor(1, 0.25, 0.25, 1)
+				compactTextHealth:SetFont("ZoFontGamepad22")
+			else
+				compactTextTimer = GetControl(compactText:GetName().."Timer")
+				compactTextNumber = GetControl(compactText:GetName().."Number")
+				compactTextLabel = GetControl(compactText:GetName().."Label")
+				compactText_by = GetControl(compactText:GetName().."By")
+				compactTextAttack = GetControl(compactText:GetName().."Attack")
+				compactText_from = GetControl(compactText:GetName().."From")
+				compactTextAttacker = GetControl(compactText:GetName().."Attacker")
+				compactTextHealth = GetControl(compactText:GetName().."Health")
+			end
+			compactText:SetHidden(false)
+
+			compactTextTimer:SetText("-"..tostring(zo_roundToNearest(rowData.displayTimeMS/1000, .01)).."s: ")
+
+			if rowData.resultType == ACTION_RESULT_HEAL or
+				rowData.resultType == ACTION_RESULT_HOT_TICK or
+				rowData.resultType == ACTION_RESULT_HOT then
+					compactTextLabel:SetText("HEAL")
+					compactTextNumber:SetText(ZO_CommaDelimitNumber(rowData.attackDamage))
+					compactTextNumber:SetColor(0, 1, 0, 1)
+			elseif rowData.resultType == ACTION_RESULT_CRITICAL_HEAL or 
+					rowData.resultType == ACTION_RESULT_HOT_TICK_CRITICAL then
+						compactTextLabel:SetText("HEAL")
+						compactTextNumber:SetText(ZO_CommaDelimitNumber(rowData.attackDamage).."!")
+						compactTextNumber:SetColor(0, 1, 0, 1)
+			elseif rowData.resultType == ACTION_RESULT_ABSORBED then
+				compactTextLabel:SetText("ABSORB")
+				compactTextNumber:SetText(ZO_CommaDelimitNumber(rowData.attackDamage))
+				compactTextNumber:SetColor(0, 0, 1, 1)
+			elseif rowData.resultType == ACTION_RESULT_HEAL_ABSORBED then
+				compactTextLabel:SetText("HEAL ABSORB")
+				compactTextNumber:SetText(ZO_CommaDelimitNumber(rowData.attackDamage)) 
+				compactTextNumber:SetColor(0, 1, 1, 1)
+			elseif rowData.resultType == ACTION_RESULT_DODGED or rowData.attackName == "Roll Dodge" then
+				compactTextLabel:SetText("DODGE")
+				compactTextNumber:SetText("")
+			elseif rowData.resultType == ACTION_RESULT_ROOTED then
+				compactTextLabel:SetText("ROOT")
+				compactTextNumber:SetText("")
+			elseif rowData.resultType == ACTION_RESULT_FEARED then
+				compactTextLabel:SetText("FEARED")
+				compactTextNumber:SetText("")
+			elseif rowData.resultType == ACTION_RESULT_REFLECTED then
+				compactTextLabel:SetText("REFLECT")
+				compactTextNumber:SetText("")
+			elseif rowData.resultType == ACTION_RESULT_INTERRUPT then
+				compactTextLabel:SetText("INTERRUPT")
+				compactTextNumber:SetText("")
+			elseif rowData.resultType == ACTION_RESULT_SILENCED then
+				compactTextLabel:SetText("SILENCED")
+				compactTextNumber:SetText("")
+			elseif rowData.resultType == ACTION_RESULT_SNARED then
+				compactTextLabel:SetText("SNARED")
+				compactTextNumber:SetText("")
+			elseif rowData.resultType == ACTION_RESULT_STUNNED then
+				compactTextLabel:SetText("STUNNED")
+				compactTextNumber:SetText("")
+			elseif rowData.attackName == "Break Free" then
+				compactTextLabel:SetText("BREAK FREE")
+				compactTextNumber:SetText("")
+			elseif rowData.resultType == ACTION_RESULT_DAMAGE_SHIELDED then
+				compactTextLabel:SetText("SHIELDED")
+				compactTextNumber:SetText("("..ZO_CommaDelimitNumber((rowData.attackDamage + rowData.attackOverflow))..")" )
+				compactTextNumber:SetColor(1, 0, 0, 1)
+			elseif rowData.resultType == ACTION_RESULT_BLOCKED_DAMAGE then
+				compactTextLabel:SetText("BLOCKED")
+				compactTextNumber:SetText(ZO_CommaDelimitNumber(rowData.attackDamage + rowData.attackOverflow).."*" )
+				compactTextNumber:SetColor(1, 0, 0, 1)
+			elseif rowData.resultType == ACTION_RESULT_DOT_TICK_CRITICAL or
+					rowData.resultType == ACTION_RESULT_CRITICAL_DAMAGE then
+						compactTextLabel:SetText("DOT")
+						compactTextNumber:SetText((rowData.attackDamage + rowData.attackOverflow).."!")
+						compactTextNumber:SetColor(1, 0, 0, 1)
+			elseif rowData.resultType == ACTION_RESULT_DOT_TICK then -- dot
+				compactTextLabel:SetText("DOT")
+				compactTextNumber:SetText(ZO_CommaDelimitNumber(rowData.attackDamage + rowData.attackOverflow))
+				compactTextNumber:SetColor(1, 0, 0, 1)
+			else --regular damage.
+				compactTextLabel:SetText("DMG")
+				compactTextNumber:SetText(ZO_CommaDelimitNumber(rowData.attackDamage + rowData.attackOverflow))
+				compactTextNumber:SetColor(1, 0, 0, 1)
+			end
+
+			compactTextAttack:SetText(rowData.attackName)
+			compactTextAttacker:SetText(rowData.attackerName)
+			compactTextHealth:SetText("(HP: "..ZO_CommaDelimitDecimalNumber(rowData.currentHealth)..")")
 		end
 
 		skillStyleControl:SetAlpha(startAlpha)
@@ -761,117 +940,6 @@ local function SetupAttacks(self) -- https://github.com/esoui/esoui/blob/1453053
         attackControl:GetNamedChild("Text"):SetAlpha(startAlpha)
         numAttackHitsContainer:SetAlpha(startAlpha)
         --numAttackHits:SetHidden(false)
-
-
-
-
-
-		--[[
-        iconControl:SetTexture(attackInfo.attackIcon)
-        attackNameControl:SetText(zo_strformat(SI_DEATH_RECAP_ATTACK_NAME, attackInfo.attackName))
-        damageControl:SetText(zo_strformat(SI_NUMBER_FORMAT, attackInfo.attackDamage))
-
-        local killingBlowOffsetX = 72
-        if attackInfo.abilityFxIcon then
-            skillStyleIconControl:SetTexture(attackInfo.abilityFxIcon)
-            skillStyleControl:SetAlpha(startAlpha)
-            skillStyleControl:SetHidden(false)
-            killingBlowOffsetX = 32
-        else
-            skillStyleControl:SetHidden(true)
-        end
-
-        iconControl:SetAlpha(startAlpha)
-        attackControl:GetNamedChild("Text"):SetAlpha(startAlpha)
-
-        if attackInfo.numAttackHits > 1 then
-            local numAttackHitsCountLabel = numAttackHitsContainer:GetNamedChild("Count")
-            local numAttackHitsHitIcon = numAttackHitsContainer:GetNamedChild("HitIcon")
-            local numAttackHitsKillIcon = numAttackHitsContainer:GetNamedChild("KillIcon")
-            numAttackHitsContainer:SetAlpha(startAlpha)
-            numAttackHitsContainer:SetHidden(false)
-            numAttackHitsCountLabel:SetText(attackInfo.numAttackHits)
-            if attackInfo.wasKillingBlow then
-                numAttackHitsHitIcon:SetHidden(true)
-                numAttackHitsKillIcon:SetHidden(false)
-                self.killingBlowIcon:SetHidden(true)
-            else
-                numAttackHitsHitIcon:SetHidden(false)
-                numAttackHitsKillIcon:SetHidden(true)
-            end
-
-            local anchorControl = iconControl
-            if attackInfo.abilityFxIcon then
-                anchorControl = skillStyleControl
-            end
-            numAttackHitsContainer:ClearAnchors()
-            numAttackHitsContainer:SetAnchor(RIGHT, anchorControl, LEFT, -15)
-        else
-            numAttackHitsContainer:SetHidden(true)
-            if attackInfo.wasKillingBlow then
-                self.killingBlowIcon:SetHidden(false)
-                self.killingBlowIcon:SetAnchor(CENTER, attackControl, TOPLEFT, killingBlowOffsetX, 32)
-            end
-        end
-
-        local attackerNameControl = attackTextControl:GetNamedChild("AttackerName")
-        local frameControl
-        if DoesKillingAttackHaveAttacker(attackInfo.index) then
-            local attackerRawName, attackerChampionPoints, attackerLevel, attackerAvARank, isPlayer, isBoss, alliance, minionName, attackerDisplayName = GetKillingAttackerInfo(attackInfo.index)
-            local battlegroundTeam = GetKillingAttackerBattlegroundTeam(attackInfo.index)
-
-            local attackerNameLine
-            if isPlayer then
-                local nameToShow
-                if showBothPlayerNames then
-                    nameToShow = ZO_GetPrimaryPlayerNameWithSecondary(attackerDisplayName, attackerRawName)
-                else
-                    nameToShow = ZO_GetPrimaryPlayerName(attackerDisplayName, attackerRawName)
-                end
-
-                if battlegroundTeam == BATTLEGROUND_TEAM_INVALID then
-                    local coloredRankIconMarkup = ZO_GetColoredAvARankIconMarkup(attackerAvARank, alliance, 32)
-                    if minionName == "" then
-                        attackerNameLine = zo_strformat(SI_DEATH_RECAP_RANK_ATTACKER_NAME, coloredRankIconMarkup, attackerAvARank, nameToShow)
-                    else
-                        attackerNameLine = zo_strformat(SI_DEATH_RECAP_RANK_ATTACKER_NAME_MINION, coloredRankIconMarkup, attackerAvARank, nameToShow, minionName)
-                    end
-                else
-                    local battlegroundTeamIconMarkup = ZO_GetBattlegroundIconMarkup(battlegroundTeam, 32)
-                    if minionName == "" then
-                        attackerNameLine = zo_strformat(SI_DEATH_RECAP_BATTLEGROUND_ALLIANCE_ATTACKER_NAME, battlegroundTeamIconMarkup, nameToShow)
-                    else
-                        attackerNameLine = zo_strformat(SI_DEATH_RECAP_BATTLEGROUND_ALLIANCE_ATTACKER_NAME_MINION, battlegroundTeamIconMarkup, nameToShow, minionName)
-                    end
-                end
-            else
-                if minionName == "" then
-                    attackerNameLine = zo_strformat(SI_DEATH_RECAP_ATTACKER_NAME, attackerRawName)
-                else
-                    attackerNameLine = zo_strformat(SI_DEATH_RECAP_ATTACKER_NAME_MINION, attackerRawName, minionName)
-                end
-            end
-
-            attackerNameControl:SetText(attackerNameLine)
-            attackerNameControl:SetHidden(false)
-
-            attackNameControl:ClearAnchors()
-            attackNameControl:SetAnchor(TOPLEFT, attackerNameControl, BOTTOMLEFT, 0, 2)
-            attackNameControl:SetAnchor(TOPRIGHT, attackerNameControl, BOTTOMRIGHT, 0, 2)
-
-            frameControl = isBoss and iconControl:GetNamedChild("BossBorder") or iconControl:GetNamedChild("Border")
-            frameControl:SetHidden(false)
-        else
-            attackerNameControl:SetHidden(true)
-
-            attackNameControl:ClearAnchors()
-            attackNameControl:SetAnchor(TOPLEFT)
-            attackNameControl:SetAnchor(TOPRIGHT)
-            
-            frameControl = iconControl:GetNamedChild("Border")
-            frameControl:SetHidden(false)
-        end
-        --]]
 
         if prevAttackControl then
             attackControl:SetAnchor(TOPLEFT, prevAttackControl, BOTTOMLEFT, 0, 10)
@@ -885,8 +953,6 @@ local function SetupAttacks(self) -- https://github.com/esoui/esoui/blob/1453053
     --ZO_ScrollAnimation_MoveWindow(DEATH_RECAP.scrollContainer, 1000000)
     return true
 end
-
-
 
 
 
