@@ -975,9 +975,8 @@ function ADR.Initialize()
 			DEATH_RECAP.animateOnShow = nil
 			instantAnimate(DEATH_RECAP)
 		end
-		DEATH:ToggleDeathRecap()
+		ZO_DeathRecap:SetHidden(not ZO_DeathRecap:IsHidden())
 		ZO_ScrollAnimation_MoveWindow(DEATH_RECAP.scrollContainer, 100)
-		--ZO_DeathRecap:SetHidden(not ZO_DeathRecap:IsHidden())
 	end
 
 	--EVENT_MANAGER:RegisterForEvent(ADR.name, EVENT_PLAYER_DEAD, ADR.setupRecap)
