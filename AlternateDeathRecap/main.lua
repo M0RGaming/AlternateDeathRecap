@@ -1,9 +1,6 @@
 ADR = ADR or {}
 ADR.name = "AlternateDeathRecap" 
 
---TODO: Icon border in default mode.
---TOOD: Reloadui notification.
-
 local allowedResults = {
 	[ACTION_RESULT_DOT_TICK] = "damage",
 	[ACTION_RESULT_DOT_TICK_CRITICAL] = "damage",
@@ -748,12 +745,35 @@ function ADR.Initialize()
 	        disable = function() return false end,
 	    }
 
+		--reusing reload notificaiton from https://github.com/esoui/esoui/blob/1453053596e7f731ef854638c9975a4f474eba53/esoui/pregameandingame/addons/gamepad/zo_addonmanager_gamepad.lua#L606
+		local reloadRecommended = false
+		local settingScene = nil
+		zo_callLater(function() --delay calling this until the scene isn't nil.
+			 settingScene = SCENE_MANAGER:GetScene("LibHarvensAddonSettingsScene") --Same scene for all addons 
+			settingScene:SetHideSceneConfirmationCallback(function(scene, nextSceneName, bypassHideSceneConfirmationReason) 
+				if reloadRecommended and not bypassHideSceneConfirmationReason then
+						ZO_Dialogs_ShowGamepadDialog("GAMEPAD_CONFIRM_LEAVE_ADDON_MANAGER",
+						{
+							confirmCallback = function()
+								ReloadUI("ingame")
+							end,
+							declineCallback = function()
+								reloadRecommended = false
+								scene:AcceptHideScene()
+							end,
+						})
+					else
+						scene:AcceptHideScene()
+					end
+			end)
+		end, 5000)
 	    local setAnimationSpeed = {
 	        type = LibHarvensAddonSettings.ST_SLIDER,
 	        label = "Animation Length",
 	        tooltip = "Set the length of each attack animation in the death recap. This will only take affect after a reload of your UI.",
 	        setFunction = function(value)
 				ADR.savedVariables.animationSpeed = value
+				reloadRecommended = true
 			end,
 	        getFunction = function()
 	            return ADR.savedVariables.animationSpeed
