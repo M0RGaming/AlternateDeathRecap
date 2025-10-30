@@ -1,6 +1,9 @@
 ADR = ADR or {}
 ADR.name = "AlternateDeathRecap" 
 
+--TODO: Icon border in default mode.
+--TOOD: Reloadui notification.
+
 local allowedResults = {
 	[ACTION_RESULT_DOT_TICK] = "damage",
 	[ACTION_RESULT_DOT_TICK_CRITICAL] = "damage",
@@ -76,7 +79,7 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 		end
 		
 		--Only track one cast per skill.
-		if ADR.lastCastTimes[abilityName] == nil or (GetGameTimeMilliseconds() - ADR.lastCastTimes[abilityName]) > 500 then -- imo this shouldnt be here, might mess with data
+		if hitValue > 0 and (ADR.lastCastTimes[abilityName] == nil or (GetGameTimeMilliseconds() - ADR.lastCastTimes[abilityName]) > 500) then -- imo this shouldnt be here, might mess with data
 			ADR.lastCastTimes[abilityName] = GetGameTimeMilliseconds()
 		else
 			return
@@ -239,7 +242,17 @@ EVENT_MANAGER:RegisterForEvent(string.format("%s Start Prefetching", ADR.name), 
 
 -- DeathRecap:SetupAttacks
 local function SetupAttacks(self) -- https://github.com/esoui/esoui/blob/1453053596e7f731ef854638c9975a4f474eba53/esoui/ingame/deathrecap/deathrecap.lua#L212
-    local startAlpha = self:GetStartAlpha()
+	--Hide preexisting compact text.
+	--If you swap from compact to default mode, you shouldn't have to reloadui to avoid visual bugs.
+	for i = 1, 50 do
+		local currentRow = ZO_DeathRecapScrollContainerScrollChildAttacks:GetNamedChild(tostring(i))
+		if currentRow == nil then break end
+		local compactText = currentRow:GetNamedChild("Compact")
+		if compactText == nil then break end
+		compactText:SetHidden(true)
+	end
+
+	local startAlpha = self:GetStartAlpha()
     self.attackPool:ReleaseAllObjects()
     self.killingBlowIcon:SetAlpha(startAlpha)
 
@@ -253,7 +266,6 @@ local function SetupAttacks(self) -- https://github.com/esoui/esoui/blob/1453053
 
     local attacks = ADR.GetOrderedList()
 
-
     for k, v in ipairs(attacks) do
 		v.displayTimeMS = attacks[#attacks].lastUpdateAgoMS - v.lastUpdateAgoMS
 	end
@@ -263,28 +275,35 @@ local function SetupAttacks(self) -- https://github.com/esoui/esoui/blob/1453053
         local currentRow = self.attackPool:AcquireObject(i)
         local attackControl = currentRow
         local iconControl = attackControl:GetNamedChild("Icon")
+		local textControl = currentRow:GetNamedChild("Text");
         local attackTextControl = attackControl:GetNamedChild("AttackText")
-        local attackNameControl = attackTextControl:GetNamedChild("AttackName")
-        local damageControl = attackControl:GetNamedChild("Damage")
+		local attackerName = attackTextControl:GetNamedChild("AttackerName")
+		local attackName = attackTextControl:GetNamedChild("AttackName")
+		local damageLabel = currentRow:GetNamedChild("DamageLabel")
+		local damageText = currentRow:GetNamedChild("Damage")
         local skillStyleControl = attackControl:GetNamedChild("SkillStyle")
-        local skillStyleIconControl = skillStyleControl:GetNamedChild("Icon")
-        local numAttackHitsContainer = attackControl:GetNamedChild("NumAttackHits")
-
-
+        local numAttackHits = attackControl:GetNamedChild("NumAttackHits")
+		local attackCount = numAttackHits:GetNamedChild("Count")
 
         if ADR.savedVariables.isCompact == false then
+			--compact mode hides some stuff. lets make sure to unhide it
+			iconControl:SetHidden(false)
+			numAttackHits:SetHidden(false)
+			textControl:SetHidden(false)
+
 			--Default mode.
 			currentRow:SetDimensionConstraints(nil, 64, nil, nil)
 
 			--Change icon texture
 			local attack_icon = currentRow:GetNamedChild("Icon")
 			attack_icon:SetTexture(rowData.attackIcon)
+
+			--Show icon border.
+			--Accurate boss border control display is possible with some extra work, but I 
+			--doubt anyone cares about it. I didn't realize the distinction until now.
+			iconControl:GetNamedChild("Border"):SetHidden(false)
 			
 			--Display timeline using these controls.
-			local numAttackHits = currentRow:GetNamedChild("NumAttackHits")
-			local attackCount = numAttackHits:GetNamedChild("Count")
-
-			numAttackHits:SetHidden(false)
 			if rowData.displayTimeMS ~= nil then 
 				attackCount:SetHidden(false)
 				attackCount:SetText("-"..tostring(zo_roundToNearest(rowData.displayTimeMS/1000, .01)).."s")
@@ -293,7 +312,6 @@ local function SetupAttacks(self) -- https://github.com/esoui/esoui/blob/1453053
 			end
 			numAttackHits:GetNamedChild("HitIcon"):SetHidden(true)
 			numAttackHits:GetNamedChild("KillIcon"):SetHidden(true)
-			
 			numAttackHits:ClearAnchors()
 			numAttackHits:SetAnchor(RIGHT, attack_icon, LEFT, -15, -10)
 			
@@ -321,11 +339,7 @@ local function SetupAttacks(self) -- https://github.com/esoui/esoui/blob/1453053
 				end
 			end
 
-
-			
 			--Set damage and label
-			local damageLabel = currentRow:GetNamedChild("DamageLabel")
-			local damageText = currentRow:GetNamedChild("Damage")
 			if rowData.resultType == ACTION_RESULT_HEAL or
 				rowData.resultType == ACTION_RESULT_HOT_TICK or
 				rowData.resultType == ACTION_RESULT_HOT then
@@ -395,9 +409,6 @@ local function SetupAttacks(self) -- https://github.com/esoui/esoui/blob/1453053
 				damageText:SetColor(1, 0, 0, 1)
 			end
 			
-			local attackerName = currentRow:GetNamedChild("AttackText"):GetNamedChild("AttackerName")
-			local attackName = currentRow:GetNamedChild("AttackText"):GetNamedChild("AttackName")
-			
 			attackName:ClearAnchors()
 			attackName:SetAnchor(TOPLEFT, attackerName, BOTTOMLEFT, 0, 2)
 			attackName:SetAnchor(TOPRIGHT, attackerName, BOTTOMRIGHT, 0, 2)
@@ -408,10 +419,9 @@ local function SetupAttacks(self) -- https://github.com/esoui/esoui/blob/1453053
 			--Compact mode.
 			currentRow:SetDimensionConstraints(nil, nil, nil, 30)
 
-			currentRow:GetNamedChild("Icon"):SetHidden(true)
-			currentRow:GetNamedChild("NumAttackHits"):SetHidden(true)
-			currentRow:GetNamedChild("Text"):SetHidden(true)
-
+			iconControl:SetHidden(true)
+			numAttackHits:SetHidden(true)
+			textControl:SetHidden(true)
 			local health_display = GetControl(currentRow:GetName().."Health")
 			if health_display ~= nil then
 				health_display:SetHidden(true)
@@ -554,7 +564,7 @@ local function SetupAttacks(self) -- https://github.com/esoui/esoui/blob/1453053
 
         iconControl:SetAlpha(startAlpha)
         attackControl:GetNamedChild("Text"):SetAlpha(startAlpha)
-        numAttackHitsContainer:SetAlpha(startAlpha)
+        numAttackHits:SetAlpha(startAlpha)
         --numAttackHits:SetHidden(false)
 
         if prevAttackControl then
