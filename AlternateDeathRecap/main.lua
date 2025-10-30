@@ -1,7 +1,6 @@
 ADR = ADR or {}
 ADR.name = "AlternateDeathRecap" 
 
-
 local allowedResults = {
 	[ACTION_RESULT_DOT_TICK] = "damage",
 	[ACTION_RESULT_DOT_TICK_CRITICAL] = "damage",
@@ -18,7 +17,6 @@ local allowedResults = {
 	[ACTION_RESULT_HEAL] = "heal",
 	[ACTION_RESULT_HOT_TICK] = "heal",
 	[ACTION_RESULT_HOT_TICK_CRITICAL] = "heal",
-	--[ACTION_RESULT_HOT] = "heal", -- doesnt exist anymore
 
 	[ACTION_RESULT_ABSORBED] = "special",
 	[ACTION_RESULT_HEAL_ABSORBED] = "special",
@@ -33,22 +31,18 @@ local allowedResults = {
 
 }
 
-
-
 local lastResult = 0
 local shieldCount = 0
 function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, _log, sourceUnitID, targetUnitID, abilityID, overflow)
 	
 	--Remove ^M or ^Mx or similar unwanted characters on the sourceName.
 	sourceName = zo_strformat(SI_UNIT_NAME, sourceName)
-
 	--We don't want revive snare/stun events to be tracked.
 	if string.find(string.lower(abilityName), "revive") ~= nil then return end
 	--We only want to display this once, so only one type is being tracked with all other types returning here.
 	if string.find(string.lower(abilityName), "break free") ~= nil and sourceType ~= COMBAT_UNIT_TYPE_PLAYER then return end
 	--I don't know what this 0 damage attack is that I get from random bosses, but I don't want to see it.
 	if string.find(string.lower(abilityName), "vigilance") ~= nil then return end
-	
 
 	if lastResult == ACTION_RESULT_DAMAGE_SHIELDED then -- next attack will be the thing which causes the sheild to take damage
 		if result == ACTION_RESULT_DAMAGE_SHIELDED then
@@ -73,17 +67,6 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 	end
 
 
-	local resultType = allowedResults[result]
-	if resultType == nil then return end
-
-	lastResult = result
-	
-
-	local attack_icon = GetAbilityIcon(abilityID)
-	
-	local health, maxHealth = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_HEALTH)
-	
-
 	--track skills that cost health.
 	--Doesn't track health-over-time skills.
 	if sourceType == COMBAT_UNIT_TYPE_PLAYER then 
@@ -99,7 +82,15 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 			return
 		end
 	end
-	
+
+	local resultType = allowedResults[result]
+	if resultType == nil then return end
+
+	lastResult = result
+
+	local attack_icon = GetAbilityIcon(abilityID)
+
+	local health, maxHealth = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_HEALTH)
 
 	--Don't track events with empty info.
 	if sourceName == "" or
@@ -144,8 +135,6 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 			end
 	end
 	ADR.EnqueueAttack(attackInfo)
-	--ADR.EnqueueAttack(attackInfo)
-	--ADR.EnqueueAttack(attackInfo) -- TODO REMOVE THESE EXTRAS, for testing purposes
 end
 
 
@@ -218,10 +207,6 @@ end)
 DEATH_RECAP.attackPool:SetCustomFactoryBehavior(function() end)
 
 
-
-
-
-
 local prefetchingControls = true
 
 
@@ -252,11 +237,6 @@ end
 
 EVENT_MANAGER:RegisterForEvent(string.format("%s Start Prefetching", ADR.name), EVENT_PLAYER_ACTIVATED, registerPrefetch)
 
-
-
-
-
-
 -- DeathRecap:SetupAttacks
 local function SetupAttacks(self) -- https://github.com/esoui/esoui/blob/1453053596e7f731ef854638c9975a4f474eba53/esoui/ingame/deathrecap/deathrecap.lua#L212
     local startAlpha = self:GetStartAlpha()
@@ -264,8 +244,13 @@ local function SetupAttacks(self) -- https://github.com/esoui/esoui/blob/1453053
     self.killingBlowIcon:SetAlpha(startAlpha)
 
     prefetchingControls = false
+ 	ADR.lastCastTimes = {}
 
-    ADR.lastCastTimes = {}
+	--Remove elements that are too old.
+	while ADR.Peek() ~= nil and (ADR.attackList.data[ADR.attackList.back].lastUpdateAgoMS - ADR.Peek().lastUpdateAgoMS) > (ADR.savedVariables.timeLength * 1000) do
+		ADR.DequeueAttack()
+	end
+
     local attacks = ADR.GetOrderedList()
 
 
@@ -584,13 +569,6 @@ local function SetupAttacks(self) -- https://github.com/esoui/esoui/blob/1453053
     --ZO_ScrollAnimation_MoveWindow(DEATH_RECAP.scrollContainer, 1000000)
     return true
 end
-
-
-
-
-
-
-
 
 local ATTACK_ROW_ANIMATION_OVERLAP_PERCENT = 0.5
 local HINT_ANIMATION_DELAY_MS = 300
@@ -974,10 +952,7 @@ function ADR.Initialize()
 	end
 
 	ADR.lastCastTimes = {}
-	GetNumKillingAttacks = function() 
-		return ADR.attackList.size
-	end
-	
+
 	ADR.healthCostSkills = {
 		["Equilibrium"] = true,
 		["Balance"] = true,
@@ -1008,7 +983,7 @@ function ADR.Initialize()
 	--EVENT_MANAGER:RegisterForEvent(ADR.name, EVENT_PLAYER_DEAD, ADR.setupRecap)
 	
 	--reset attack list on respawn.
-	EVENT_MANAGER:RegisterForEvent(ADR.name, EVENT_PLAYER_ALIVE, function() 
+	EVENT_MANAGER:RegisterForEvent(ADR.name, EVENT_PLAYER_ALIVE, function()
 		ADR.lastCastTimes = {}
 		ADR.Reset()
 	end)

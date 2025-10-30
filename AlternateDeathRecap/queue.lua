@@ -36,12 +36,6 @@ function ADR.EnqueueAttack(attack)
 	ADR.attackList.size = ADR.attackList.size + 1
 	ADR.attackList.back = (ADR.attackList.back%ADR.savedVariables.maxAttacks) + 1
 	ADR.attackList.data[ADR.attackList.back] = attack
-	
-	--Check for oldest elements to be removed.
-	--I don't like checking this every time we add to the list, but the other options cause issues with race conditions.
-	while ADR.Peek() ~= nil and (attack.lastUpdateAgoMS - ADR.Peek().lastUpdateAgoMS) > (ADR.savedVariables.timeLength * 1000) do
-		ADR.DequeueAttack()
-	end
 end
 
 function ADR.Peek()
@@ -54,9 +48,8 @@ end
 Create a copy of the queue that the code in the main file will read from.
 Doesn't modify the original queue.
 Format.
-	Indexes from 1 to 25
-	Index 1. Oldest Attack
-	Index 25. Newest Attack
+	Smaller indexes: Oldest Attack
+	Highest Index: Newest Attack
 ]]
 function ADR.GetOrderedList()
 	local returnedList = {}
