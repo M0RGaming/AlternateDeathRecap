@@ -723,8 +723,6 @@ function ADR.Initialize()
 
 	--SETTINGS:
 
-
-	-- TODO: Replace with LAM2 for PC
 	if IsConsoleUI() then
 		local settings = LibHarvensAddonSettings:AddAddon("Alternate Death Recap")
 
@@ -747,26 +745,32 @@ function ADR.Initialize()
 
 		--reusing reload notificaiton from https://github.com/esoui/esoui/blob/1453053596e7f731ef854638c9975a4f474eba53/esoui/pregameandingame/addons/gamepad/zo_addonmanager_gamepad.lua#L606
 		local reloadRecommended = false
+
+		--The hooking logic here is kinda stupid. It works for now
 		local settingScene = nil
-		zo_callLater(function() --delay calling this until the scene isn't nil.
-			 settingScene = SCENE_MANAGER:GetScene("LibHarvensAddonSettingsScene") --Same scene for all addons 
-			settingScene:SetHideSceneConfirmationCallback(function(scene, nextSceneName, bypassHideSceneConfirmationReason) 
-				if reloadRecommended and not bypassHideSceneConfirmationReason then
-						ZO_Dialogs_ShowGamepadDialog("GAMEPAD_CONFIRM_LEAVE_ADDON_MANAGER",
-						{
-							confirmCallback = function()
-								ReloadUI("ingame")
-							end,
-							declineCallback = function()
-								reloadRecommended = false
-								scene:AcceptHideScene()
-							end,
-						})
-					else
-						scene:AcceptHideScene()
-					end
-			end)
-		end, 5000)
+		ZO_PostHook(ZO_Scene, "New", function(scene, y, z)
+			if not settingScene then --Only do this once
+				settingScene = SCENE_MANAGER:GetScene("LibHarvensAddonSettingsScene") --Same scene for all addons 
+				if settingScene then --Only do this after the scene has been initialized.
+					settingScene:SetHideSceneConfirmationCallback(function(scene, nextSceneName, bypassHideSceneConfirmationReason) 
+						if reloadRecommended and not bypassHideSceneConfirmationReason then
+							ZO_Dialogs_ShowGamepadDialog("GAMEPAD_CONFIRM_LEAVE_ADDON_MANAGER",
+							{
+								confirmCallback = function()
+									ReloadUI("ingame")
+								end,
+								declineCallback = function()
+									reloadRecommended = false
+									scene:AcceptHideScene()
+								end,
+							})
+						else
+							scene:AcceptHideScene()
+						end
+					end)
+				end
+			end
+		end)
 	    local setAnimationSpeed = {
 	        type = LibHarvensAddonSettings.ST_SLIDER,
 	        label = "Animation Length",
