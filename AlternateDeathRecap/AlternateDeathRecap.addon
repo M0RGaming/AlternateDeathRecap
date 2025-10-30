@@ -4,7 +4,11 @@
 ## Version: 1.0.0
 ## IsLibrary: False
 ## ConsoleDependsOn: LibHarvensAddonSettings>=20004
+## PCDependsOn: LibAddonMenu-2.0>=40
 ## SavedVariables: ADRSavedVariables
 
 queue.lua
 main.lua
+animations.xml
+
+PC/settings.lua
