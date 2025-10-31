@@ -629,7 +629,7 @@ local function instantAnimate(self)
         skillStyleControl:SetAlpha(1)
         attackControl:GetNamedChild("Text"):SetAlpha(1)
         numAttackHitsContainer:SetAlpha(1)
-		health_display:SetAlpha(1)
+		if health_display ~= nil then health_display:SetAlpha(1) end
 
 
         if isLastRow then
