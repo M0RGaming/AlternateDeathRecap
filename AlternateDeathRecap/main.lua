@@ -92,9 +92,10 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 		result = ACTION_RESULT_DAMAGE
 		hitValue = maxHealth
 		abilityName = "Environmental Damage"
-		overflow = 0
+		overflow = 1 --this is a killing blow.
 		attack_icon = "/esoui/art/icons/death_recap_environmental.dds"
 		sourceName = " " --Nothing here but we don't want to return on it.
+
 	end
 
 	local resultType = allowedResults[result]
@@ -220,7 +221,6 @@ DEATH_RECAP.attackPool:SetCustomFactoryBehavior(function() end)
 
 
 local prefetchingControls = true
-
 
 local currentIndex = 1
 function ADR.prefetchControls() -- prefetch maxAttacks amount of controls, to avoid stutters when loading all maxAttacks number of controls at first death.
