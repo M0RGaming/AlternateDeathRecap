@@ -83,14 +83,26 @@ function ADR.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraph
 		end
 	end
 
+	local health, maxHealth = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_HEALTH)
+	local attack_icon = GetAbilityIcon(abilityID)
+
+	--Convert environmental damage to a valid damage to make it compatible with the rest of the code.
+	--We get rewarded with nil errors if the player dies with an empty attack list.
+	if result == ACTION_RESULT_KILLED_BY_SUBZONE then
+		result = ACTION_RESULT_DAMAGE
+		hitValue = maxHealth
+		abilityName = "Environmental Damage"
+		overflow = 0
+		attack_icon = "/esoui/art/icons/death_recap_environmental.dds"
+		sourceName = " " --Nothing here but we don't want to return on it.
+	end
+
 	local resultType = allowedResults[result]
 	if resultType == nil then return end
 
 	lastResult = result
 
-	local attack_icon = GetAbilityIcon(abilityID)
 
-	local health, maxHealth = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_HEALTH)
 
 	--Don't track events with empty info.
 	if sourceName == "" or
@@ -249,6 +261,16 @@ local function SetupAttacks(self) -- https://github.com/esoui/esoui/blob/1453053
 		compactText:SetHidden(true)
 	end
 
+	--Need to track bosses for boss attack icon borders.
+	local bossNames = {}
+	for i = 1, 12 do
+		local tempTag = "boss"..i
+		local bossNameEntry = zo_strformat(SI_UNIT_NAME, GetUnitName(tempTag))
+		if DoesUnitExist(tempTag) and not bossNames[bossNameEntry] then
+			bossNames[bossNameEntry] = true
+		end
+	end
+
 	local startAlpha = self:GetStartAlpha()
     self.attackPool:ReleaseAllObjects()
     self.killingBlowIcon:SetAlpha(startAlpha)
@@ -295,11 +317,15 @@ local function SetupAttacks(self) -- https://github.com/esoui/esoui/blob/1453053
 			local attack_icon = currentRow:GetNamedChild("Icon")
 			attack_icon:SetTexture(rowData.attackIcon)
 
-			--Show icon border.
-			--Accurate boss border control display is possible with some extra work, but I 
-			--doubt anyone cares about it. I didn't realize the distinction until now.
-			iconControl:GetNamedChild("Border"):SetHidden(false)
-			
+			--Show the correct icon border.
+			if bossNames[rowData.attackerName] then
+				iconControl:GetNamedChild("BossBorder"):SetHidden(false)
+				iconControl:GetNamedChild("Border"):SetHidden(true)
+			else
+				iconControl:GetNamedChild("Border"):SetHidden(false)
+				iconControl:GetNamedChild("BossBorder"):SetHidden(true)
+			end
+
 			--Display timeline using these controls.
 			if rowData.displayTimeMS ~= nil then 
 				attackCount:SetHidden(false)
